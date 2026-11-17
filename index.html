@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>電路闖關 CH3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700;900&family=Share+Tech+Mono&display=swap">
+<style>
+:root {
+	/* 版面：方格紙實驗桌。墨色電路線、白色貼紙卡（粗框＋硬陰影），六個關卡用電阻色碼 1~7 上色。 */
+	color-scheme: light;
+	--paper: #eef3f8;
+	--grid: #d9e3ee;
+	--ink: #1b2130;
+	--muted: #556073;
+	--card: #ffffff;
+	--flow: #f0a202;
+	--glow: #ffd23f;
+	--lcd: #cbd9b4;
+	--lcd-ink: #1d2915;
+	--good: #1d9a52;
+	--bad: #d23f3f;
+	--b1: #8a5a2e; --b2: #d4382c; --b3: #ec8a1c; --b4: #e3b81a; --b5: #2b9a55; --b6: #2d6cd2; --b7: #8a4fd0;
+	--font-display: "LXGW WenKai TC", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+	--font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+	--font-lcd: "Share Tech Mono", ui-monospace, Consolas, monospace;
+	--lv: var(--ink);
+	--lv-text: #ffffff;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+	background-color: var(--paper);
+	background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+	background-size: 24px 24px;
+	color: var(--ink);
+	font-family: var(--font-body);
+	font-size: 16px;
+	line-height: 1.6;
+}
+h1, h2, h3, h4 { text-wrap: balance; }
+sub { font-size: 0.7em; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+main.wrap { padding-bottom: 72px; }
+
+/* 頂欄 */
+.topbar { position: sticky; top: 0; z-index: 20; background: var(--paper); border-bottom: 2.5px solid var(--ink); }
+.topbar .wrap { display: flex; align-items: center; gap: 10px; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 22px; background: none; border: 0; color: var(--ink); cursor: pointer; padding: 0; display: flex; align-items: center; gap: 8px; }
+.brand svg { width: 34px; height: 18px; }
+.spacer { flex: 1; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border: 2px solid var(--ink); border-radius: 999px; background: var(--card); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; }
+.chip .star { color: var(--b4); -webkit-text-stroke: 0.6px var(--ink); }
+
+/* 按鈕：貼紙 */
+.btn { font: inherit; font-weight: 700; color: var(--ink); background: var(--card); border: 2.5px solid var(--ink); border-radius: 10px; padding: 8px 16px; box-shadow: 3px 3px 0 var(--ink); cursor: pointer; transition: transform .08s, box-shadow .08s; line-height: 1.4; }
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.btn:disabled { opacity: .55; cursor: default; transform: none; box-shadow: 3px 3px 0 var(--ink); }
+.btn.primary { background: var(--lv); color: var(--lv-text); }
+.btn.small { padding: 4px 10px; font-size: 14px; box-shadow: 2px 2px 0 var(--ink); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--b6); outline-offset: 2px; }
+
+/* 地圖首頁 */
+.hero { padding: 36px 0 8px; display: grid; gap: 14px; }
+.eyebrow { margin: 0; font-weight: 700; color: var(--muted); letter-spacing: .08em; font-size: 14px; }
+h1 { font-family: var(--font-display); font-size: clamp(48px, 9vw, 92px); line-height: 1; margin: 0; letter-spacing: .02em; }
+h1 .zap { color: var(--flow); -webkit-text-stroke: 2px var(--ink); }
+.lede { margin: 0; max-width: 34em; font-size: 18px; color: var(--muted); }
+.trace-box { background: var(--card); border: 2.5px solid var(--ink); border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); padding: 10px 12px; overflow-x: auto; }
+.trace { display: block; width: 100%; min-width: 660px; height: auto; }
+.trace .rbtn { cursor: pointer; }
+.trace .rbtn:hover rect.body, .trace .rbtn:focus rect.body { stroke-width: 4; }
+.trace-note { margin: 6px 4px 0; font-size: 14px; color: var(--muted); }
+.levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 22px; margin-top: 28px; }
+.lcard { display: grid; grid-template-columns: 22px 1fr; background: var(--card); border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: 5px 5px 0 var(--ink); overflow: hidden; }
+.lcard .band { background: var(--lv); border-right: 2.5px solid var(--ink); background-image: linear-gradient(90deg, transparent 0 7px, rgba(0,0,0,.18) 7px 9px, transparent 9px); }
+.lbody { padding: 16px 18px 18px; display: grid; gap: 4px; align-content: start; }
+.lmeta { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .04em; }
+.lcard h3 { margin: 0; font-family: var(--font-display); font-size: 28px; line-height: 1.2; }
+.ltopic { margin: 0; font-weight: 700; }
+.lblurb { margin: 2px 0 8px; color: var(--muted); font-size: 15px; }
+.lfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+.stars { font-size: 22px; letter-spacing: 2px; line-height: 1; }
+.stars .on { color: var(--b4); -webkit-text-stroke: 1px var(--ink); }
+.stars .off { color: var(--grid); -webkit-text-stroke: 1px var(--muted); }
+.mapfoot { margin-top: 30px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+
+/* 關卡頁 */
+.lhead { display: flex; align-items: center; gap: 16px; padding: 26px 0 6px; flex-wrap: wrap; }
+.lhead h2 { margin: 0; font-family: var(--font-display); font-size: clamp(32px, 5vw, 48px); line-height: 1.1; }
+.badge { width: 96px; height: 40px; flex: none; }
+.block { margin-top: 30px; }
+.block > h3 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 12px; font-family: var(--font-display); font-size: 28px; }
+.block > h3 .num { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--lv); color: var(--lv-text); border: 2.5px solid var(--ink); font-family: var(--font-body); font-size: 17px; font-weight: 900; transform: translateY(4px); }
+.block > h3 small { font-family: var(--font-body); font-size: 15px; color: var(--muted); font-weight: 500; }
+.tips { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.tip { background: var(--card); border: 2px solid var(--ink); border-radius: 12px; padding: 12px 14px; }
+.tip h4 { margin: 0 0 4px; font-family: var(--font-display); font-size: 20px; }
+.tip p { margin: 0; }
+.tip .f { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 6px; background: var(--paper); border: 1.5px solid var(--grid); font-weight: 700; }
+.tip.trap { background: #fff3f1; border-color: var(--bad); }
+.tip.trap h4 { color: var(--bad); }
+
+.sim { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; background: var(--card); border: 2.5px solid var(--ink); border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); padding: 16px; }
+@media (max-width: 880px) { .sim { grid-template-columns: 1fr; } }
+.stage { background: #fbfcfe; border: 2px solid var(--grid); border-radius: 12px; padding: 6px; align-self: start; }
+.stage svg { width: 100%; height: auto; display: block; }
+.panel { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.ctrl { display: grid; grid-template-columns: 4.6em minmax(0, 1fr) 4.4em; align-items: center; gap: 10px; }
+.ctrl.c4 { grid-template-columns: 2.2em minmax(0, 1fr) 3.4em 4.6em; }
+.ctrl label { font-weight: 700; }
+.ctrl output { font-family: var(--font-lcd); font-size: 18px; text-align: right; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--lv); height: 28px; }
+.lcds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.lcd { background: var(--lcd); color: var(--lcd-ink); border: 2px solid var(--ink); border-radius: 8px; padding: 4px 10px 6px; box-shadow: inset 0 3px 0 rgba(0, 0, 0, .1); min-width: 0; }
+.lcd small { display: block; font-size: 12px; font-weight: 700; }
+.lcd b { font-family: var(--font-lcd); font-size: 24px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.steps { font-size: 15px; background: var(--paper); border: 2px dashed var(--muted); border-radius: 8px; padding: 8px 12px; display: grid; gap: 2px; }
+table.read { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 15px; }
+table.read th, table.read td { border-bottom: 1.5px solid var(--grid); padding: 3px 6px; text-align: right; }
+table.read th:first-child, table.read td:first-child { text-align: left; }
+.status { font-weight: 700; padding: 6px 12px; border-radius: 8px; border: 2px solid; }
+.status.ok { border-color: var(--good); color: var(--good); background: #e9f7ef; }
+.status.no { border-color: var(--bad); color: var(--bad); background: #fdeeee; }
+.split { display: flex; height: 26px; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; }
+.split span { display: block; height: 100%; transition: width .15s; }
+.split .loss { background: var(--bad); }
+.split .keep { background: var(--good); }
+.legend { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 700; flex-wrap: wrap; }
+.legend .l { color: var(--bad); } .legend .k { color: var(--good); }
+.ride-log { margin: 0; padding-left: 1.2em; font-size: 15px; min-height: 2em; }
+.ride-log .sum { font-weight: 900; color: var(--good); list-style: none; margin-left: -1.2em; }
+.frows { display: grid; gap: 6px; }
+.frow { padding: 6px 10px; border: 2px solid var(--grid); border-radius: 8px; cursor: pointer; font-size: 15px; }
+.frow.on { border-color: var(--b6); background: #eef4ff; }
+.hint { margin: 0; font-size: 14px; color: var(--muted); }
+
+.missions { display: grid; gap: 8px; margin-top: 14px; }
+.missions .mtitle { margin: 0; font-weight: 900; }
+.mission { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border: 2px solid var(--ink); border-radius: 10px; background: var(--card); }
+.mission .box { width: 22px; height: 22px; border: 2.5px solid var(--ink); border-radius: 5px; flex: none; display: grid; place-items: center; margin-top: 2px; font-weight: 900; font-size: 14px; }
+.mission.done { background: #e9f7ef; }
+.mission.done .box { background: var(--good); border-color: var(--good); color: #fff; }
+.mission .xp { margin-left: auto; font-weight: 700; color: var(--muted); white-space: nowrap; font-size: 14px; }
+
+/* 挑戰 */
+.quiz { background: var(--card); border: 2.5px solid var(--ink); border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); padding: 20px; }
+.qhead { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-weight: 700; }
+.pips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pip { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--ink); background: var(--card); }
+.pip.ok { background: var(--good); } .pip.no { background: var(--bad); } .pip.now { background: var(--lv); }
+.combo { font-family: var(--font-display); color: var(--b2); font-size: 20px; }
+.hearts { color: var(--bad); letter-spacing: 3px; font-size: 20px; }
+.hearts .lost { color: var(--grid); }
+.qtext { font-size: 20px; font-weight: 700; margin: 14px 0 16px; max-width: 40em; }
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .opts { grid-template-columns: 1fr; } }
+.opt { text-align: left; font-size: 17px; font-weight: 700; }
+.opt.right { background: var(--good); color: #fff; }
+.opt.wrong { background: var(--bad); color: #fff; animation: shake .35s; }
+.feedback { margin-top: 16px; padding: 12px 14px; border-radius: 10px; border: 2.5px solid var(--ink); background: var(--paper); display: grid; gap: 8px; }
+.feedback.good { border-color: var(--good); }
+.feedback.bad { border-color: var(--bad); }
+.feedback .verdict { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+.feedback.good .verdict { color: var(--good); } .feedback.bad .verdict { color: var(--bad); }
+.feedback .row { display: flex; justify-content: flex-end; }
+.result { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 10px 0; }
+.result .big { font-family: var(--font-display); font-size: 56px; line-height: 1; }
+.result .stars { font-size: 46px; }
+.result .rank { font-family: var(--font-display); font-size: 80px; line-height: 1; color: var(--lv); -webkit-text-stroke: 2px var(--ink); }
+.result .acts { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.lnav { display: flex; justify-content: space-between; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+.toast { position: fixed; top: 64px; right: 18px; z-index: 50; background: var(--ink); color: var(--card); padding: 8px 14px; border-radius: 10px; font-weight: 700; box-shadow: 3px 3px 0 var(--flow); animation: toast 1.9s forwards; }
+@keyframes toast { 0% { opacity: 0; transform: translateY(-8px); } 10% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; }
+
+/* SVG 電路零件 */
+svg text { font-family: var(--font-body); }
+.wire { stroke: var(--ink); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.dots { stroke: var(--flow); stroke-width: 7; fill: none; stroke-dasharray: 0.1 18; stroke-linecap: round; }
+.plate { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; }
+.res { fill: var(--card); stroke: var(--ink); stroke-width: 2.5; }
+.res.adj { fill: #fff2d9; stroke: var(--b3); stroke-width: 3.5; }
+.res.hl { fill: #dce9ff; stroke: var(--b6); stroke-width: 3.5; }
+.res.hl2 { fill: #ffe1dc; stroke: var(--b2); stroke-width: 3.5; }
+.lbl { font-size: 15px; fill: var(--ink); font-weight: 700; }
+.val { font-size: 14px; fill: var(--muted); font-weight: 500; }
+.cap { font-size: 14px; fill: var(--muted); font-weight: 700; }
+.pm { font-size: 15px; fill: var(--ink); font-weight: 900; }
+.srcbox { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.halo { fill: var(--glow); }
+.glass { fill: var(--card); }
+.glowfill { fill: var(--glow); }
+.filament { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.ring { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+.csrc { fill: var(--card); stroke: var(--ink); stroke-width: 2.5; }
+.arrow { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.gridl { stroke: var(--grid); stroke-width: 1.5; }
+.zero { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.vline { fill: none; stroke: var(--b3); stroke-width: 3.5; stroke-linejoin: round; }
+.vdot { fill: var(--b3); stroke: var(--ink); stroke-width: 2; }
+.cart { fill: var(--b2); stroke: var(--ink); stroke-width: 2.5; }
+.node { stroke: var(--ink); stroke-width: 3; }
+.node.ok { fill: var(--good); }
+.node.no { fill: var(--bad); animation: blink .7s infinite alternate; }
+@keyframes blink { to { opacity: .45; } }
+.bar-in { fill: var(--b6); stroke: var(--ink); stroke-width: 2; }
+.bar-out { fill: var(--b5); stroke: var(--ink); stroke-width: 2; }
+.face { fill: var(--card); stroke: var(--ink); stroke-width: 2.5; }
+.dial { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+.needle { stroke: var(--b2); stroke-width: 4; stroke-linecap: round; transition: all .12s; }
+.shackle { fill: none; stroke: var(--ink); stroke-width: 4.5; transition: transform .4s; }
+.lock.open .shackle { transform: translateY(-9px); }
+.lockbody { fill: var(--b3); stroke: var(--ink); stroke-width: 2.5; }
+.lock.open .lockbody { fill: var(--good); }
+.trace .lit { stroke: var(--flow); stroke-width: 7; fill: none; stroke-dasharray: 0.1 16; stroke-linecap: round; animation: flow .7s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -16.1; } }
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+	<div class="wrap">
+		<button class="brand" id="brand" type="button" aria-label="回到關卡地圖">
+			<svg viewBox="0 0 34 18" aria-hidden="true"><line x1="0" y1="9" x2="7" y2="9" stroke="#1b2130" stroke-width="2.5"/><rect x="7" y="3" width="20" height="12" rx="3" fill="#fff" stroke="#1b2130" stroke-width="2.5"/><rect x="11" y="3" width="3" height="12" fill="#ec8a1c"/><rect x="17" y="3" width="3" height="12" fill="#2d6cd2"/><line x1="27" y1="9" x2="34" y2="9" stroke="#1b2130" stroke-width="2.5"/></svg>
+			電路闖關
+		</button>
+		<span class="spacer"></span>
+		<span class="chip" id="chip-stars"><span class="star" aria-hidden="true">★</span> <span id="stars-n">0</span> / 18</span>
+		<span class="chip" id="chip-xp">XP <span id="xp-n">0</span></span>
+		<button class="btn small" id="sound-btn" type="button" aria-pressed="true">音效 開</button>
+	</div>
+</header>
+<main class="wrap" id="view"></main>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- 小工具 ---------- */
+const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const SVGNS = 'http://www.w3.org/2000/svg';
+function h(tag, attrs, ...kids) {
+	const el = document.createElement(tag);
+	if (attrs) for (const [k, v] of Object.entries(attrs)) {
+		if (v == null || v === false) continue;
+		if (k === 'class') el.className = v;
+		else if (k === 'html') el.innerHTML = v;
+		else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+		else el.setAttribute(k, v === true ? '' : v);
+	}
+	for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+	return el;
+}
+function s(tag, attrs, ...kids) {
+	const el = document.createElementNS(SVGNS, tag);
+	if (attrs) for (const [k, v] of Object.entries(attrs)) {
+		if (v == null) continue;
+		if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+		else el.setAttribute(k, v);
+	}
+	for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+	return el;
+}
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fmt(x) { if (!isFinite(x)) return '∞'; let r = Math.round(x * 100) / 100; if (Object.is(r, -0)) r = 0; return String(r); }
+const nice = x => isFinite(x) && Math.abs(x * 2 - Math.round(x * 2)) < 1e-9;
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; }
+const par = (a, b) => a * b / (a + b);
+const signed = v => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
+
+/* ---------- 存檔 ---------- */
+const KEY = 'ch3-circuit-quest-v1';
+const fresh = () => ({ xp: 0, stars: {}, bossWin: false, bossBest: 0, missions: {}, locks: 0, sound: true });
+let S = fresh();
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) { /* 沒有 localStorage 也能玩 */ }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 忽略 */ } }
+
+/* ---------- 音效 ---------- */
+let actx = null;
+function tone(freq, dur, type, when, vol) {
+	if (!S.sound) return;
+	try {
+		actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+		const t0 = actx.currentTime + (when || 0);
+		const o = actx.createOscillator(), g = actx.createGain();
+		o.type = type || 'sine'; o.frequency.value = freq;
+		g.gain.setValueAtTime(vol || 0.12, t0);
+		g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+		o.connect(g).connect(actx.destination);
+		o.start(t0); o.stop(t0 + dur + 0.02);
+	} catch (e) { /* 瀏覽器不給播就算了 */ }
+}
+const sfx = {
+	good() { tone(660, .12, 'triangle'); tone(990, .2, 'triangle', .1); },
+	bad() { tone(150, .28, 'sawtooth', 0, .07); },
+	win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .2, 'triangle', i * .09)); },
+	click() { tone(880, .04, 'square', 0, .03); }
+};
+
+/* ---------- XP、提示、彩帶 ---------- */
+function totalStars() { return Object.values(S.stars).reduce((a, b) => a + b, 0); }
+function renderStats() {
+	document.getElementById('xp-n').textContent = S.xp;
+	document.getElementById('stars-n').textContent = totalStars();
+	const sb = document.getElementById('sound-btn');
+	sb.setAttribute('aria-pressed', String(S.sound));
+	sb.textContent = S.sound ? '音效 開' : '音效 關';
+}
+function toast(text) { const t = h('div', { class: 'toast', role: 'status' }, text); document.body.append(t); setTimeout(() => t.remove(), 2000); }
+function addXP(n, msg) { S.xp += n; save(); renderStats(); toast(`+${n} XP${msg ? '　' + msg : ''}`); }
+
+const cv = document.getElementById('confetti');
+const cctx = cv.getContext('2d');
+let parts = [];
+const CONF = ['#8a5a2e', '#d4382c', '#ec8a1c', '#e3b81a', '#2b9a55', '#2d6cd2', '#8a4fd0'];
+function confetti(x, y, n) {
+	if (reduceMotion) return;
+	for (let i = 0; i < (n || 36); i++) parts.push({ x, y, vx: (Math.random() - .5) * 10, vy: -Math.random() * 9 - 3, w: 4 + Math.random() * 5, c: pick(CONF), life: 1, rot: Math.random() * 6, vr: (Math.random() - .5) * .4 });
+}
+function drawConfetti(dt) {
+	const dpr = window.devicePixelRatio || 1;
+	if (!parts.length) { if (cv.dataset.dirty) { cctx.clearRect(0, 0, cv.width, cv.height); delete cv.dataset.dirty; } return; }
+	const W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
+	if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+	cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+	cctx.clearRect(0, 0, innerWidth, innerHeight);
+	for (const p of parts) {
+		p.vy += 0.38; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= dt * 0.7;
+		cctx.save(); cctx.globalAlpha = Math.max(0, p.life); cctx.translate(p.x, p.y); cctx.rotate(p.rot);
+		cctx.fillStyle = p.c; cctx.fillRect(-p.w / 2, -p.w / 3, p.w, p.w * 0.66); cctx.restore();
+	}
+	parts = parts.filter(p => p.life > 0 && p.y < innerHeight + 40);
+	cv.dataset.dirty = '1';
+}
+
+/* ---------- 電流動畫 ---------- */
+let flows = [];
+let rideFn = null;
+function flowSpeed(I) { if (!isFinite(I) || Math.abs(I) < 1e-9) return 0; return Math.sign(I) * Math.min(260, 14 + Math.abs(I) * 16); }
+function setFlow(f, I) { f.v = flowSpeed(I); f.el.style.opacity = f.v === 0 ? 0 : 1; }
+function addFlow(layer, d, I) { const el = s('path', { d, class: 'dots' }); layer.append(el); const f = { el, v: 0, off: Math.random() * 18 }; setFlow(f, I); flows.push(f); return f; }
+let lastT = performance.now();
+function frame(t) {
+	const dt = Math.min(.05, Math.max(0, (t - lastT) / 1000)); lastT = t;
+	if (!reduceMotion) for (const f of flows) { f.off = (f.off - f.v * dt) % 1800; f.el.style.strokeDashoffset = f.off; }
+	if (rideFn) rideFn(t);
+	drawConfetti(dt);
+	requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- 共用元件 ---------- */
+function slider(id, label, min, max, step, value, unit, oninput) {
+	const out = h('output', { for: id }, fmt(value) + ' ' + unit);
+	const inp = h('input', { type: 'range', id, min, max, step, value });
+	inp.addEventListener('input', () => { const v = parseFloat(inp.value); out.textContent = fmt(v) + ' ' + unit; oninput(v); });
+	const row = h('div', { class: 'ctrl' }, h('label', { for: id, html: label }), inp, out);
+	row.set = v => { inp.value = v; out.textContent = fmt(v) + ' ' + unit; };
+	return row;
+}
+function seg(id, options, value, onchange) {
+	const wrap = h('div', { class: 'seg', role: 'group', id });
+	const btns = [];
+	for (const [v, label] of options) {
+		const b = h('button', { class: 'btn small', type: 'button', 'aria-pressed': String(v === value) }, label);
+		b.addEventListener('click', () => { btns.forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); sfx.click(); onchange(v); });
+		btns.push(b); wrap.append(b);
+	}
+	return wrap;
+}
+function lcd(label) { const b = h('b', null, '—'); const el = h('div', { class: 'lcd' }, h('small', { html: label }), b); el.set = t => { b.textContent = t; }; return el; }
+function simShell(root, vb, label) {
+	const svg = s('svg', { viewBox: vb, role: 'img', 'aria-label': label });
+	const panel = h('div', { class: 'panel' });
+	root.append(h('div', { class: 'sim' }, h('div', { class: 'stage' }, svg), panel));
+	return { svg, panel };
+}
+function layers(svg) { const a = s('g'), b = s('g'), c = s('g'); svg.append(a, b, c); return [a, b, c]; }
+function batteryV(g, x, y) {
+	g.append(
+		s('line', { x1: x - 18, y1: y - 8, x2: x + 18, y2: y - 8, class: 'plate' }),
+		s('line', { x1: x - 9, y1: y + 8, x2: x + 9, y2: y + 8, class: 'plate', 'stroke-width': 6 }),
+		s('text', { x: x - 30, y: y - 4, class: 'pm' }, '+')
+	);
+}
+function bulb(g, x, y) {
+	const halo = s('circle', { cx: x, cy: y, r: 22, class: 'halo', style: 'opacity:0' });
+	const glow = s('circle', { cx: x, cy: y, r: 20, class: 'glowfill', style: 'opacity:0' });
+	g.append(halo, s('circle', { cx: x, cy: y, r: 20, class: 'glass' }), glow,
+		s('path', { d: `M${x - 9} ${y + 5} l3 -9 l3 9 l3 -9 l3 9 l3 -9`, class: 'filament' }),
+		s('circle', { cx: x, cy: y, r: 20, class: 'ring' }));
+	return { set(b) { glow.style.opacity = b; halo.setAttribute('r', 22 + 16 * b); halo.style.opacity = 0.45 * b; } };
+}
+function resBox(g, x1, y1, x2, y2, cls) {
+	const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2, ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI, len = Math.hypot(x2 - x1, y2 - y1);
+	const rect = s('rect', { x: cx - 22, y: cy - 9, width: 44, height: 18, rx: 3, class: 'res' + (cls ? ' ' + cls : '') });
+	g.append(s('g', { transform: `rotate(${ang} ${cx} ${cy})` },
+		s('line', { x1: cx - len / 2, y1: cy, x2: cx - 22, y2: cy, class: 'wire' }), rect,
+		s('line', { x1: cx + 22, y1: cy, x2: cx + len / 2, y2: cy, class: 'wire' })));
+	return rect;
+}
+function missionList(defs) {
+	const wrap = h('div', { class: 'missions' }, h('p', { class: 'mtitle' }, '任務：動手調整上面的電路，達成時會自動打勾'));
+	const items = {};
+	for (const d of defs) {
+		const done = !!S.missions[d.id];
+		const el = h('div', { class: 'mission' + (done ? ' done' : '') }, h('span', { class: 'box', 'aria-hidden': 'true' }, done ? '✓' : ''), h('span', null, d.text), h('span', { class: 'xp' }, `+${d.xp} XP`));
+		items[d.id] = el; wrap.append(el);
+	}
+	return {
+		el: wrap,
+		check(id, cond) {
+			if (!cond || S.missions[id]) return;
+			S.missions[id] = true; save();
+			const el = items[id]; el.classList.add('done'); el.querySelector('.box').textContent = '✓';
+			const d = defs.find(x => x.id === id);
+			sfx.win();
+			const r = el.getBoundingClientRect(); confetti(r.left + 24, r.top + 12, 30);
+			addXP(d.xp, '任務完成');
+		}
+	};
+}
+function starRow(n, total) {
+	const wrap = h('span', { class: 'stars', 'aria-label': `${n} 顆星` });
+	for (let i = 0; i < (total || 3); i++) wrap.append(h('span', { class: i < n ? 'on' : 'off', 'aria-hidden': 'true' }, '★'));
+	return wrap;
+}
+
+/* ---------- 實驗台 1：燈泡派對 ---------- */
+function calc1(mode, E, R) {
+	const [a, b, c] = R;
+	if (mode === 'series') { const RT = a + b + c, I = E / RT; return { RT, IT: I, I: [I, I, I], V: [I * a, I * b, I * c] }; }
+	if (mode === 'parallel') { const RT = 1 / (1 / a + 1 / b + 1 / c); return { RT, IT: E / RT, I: [E / a, E / b, E / c], V: [E, E, E] }; }
+	const p = par(b, c), RT = a + p, IT = E / RT, Vp = IT * p;
+	return { RT, IT, p, Vp, I: [IT, Vp / b, Vp / c], V: [IT * a, Vp, Vp] };
+}
+function sim1(root) {
+	const st = { mode: 'series', E: 12, R: [6, 4, 2] };
+	const { svg, panel } = simShell(root, '0 0 560 300', '電源接三個燈泡的電路');
+	const [wireL, flowL, partL] = layers(svg);
+	const BAT = 'M60 230 L60 158 M60 142 L60 70';
+	const G = {
+		series: { bulbs: [[170, 70, 'up'], [290, 70, 'up'], [410, 70, 'up']], paths: [['M60 70 L500 70 L500 230 L60 230', 'T']] },
+		parallel: { bulbs: [[200, 150, 'right'], [320, 150, 'right'], [440, 150, 'right']], paths: [['M60 70 L200 70', 'T'], ['M200 70 L320 70', '23'], ['M320 70 L440 70', '3'], ['M200 70 L200 230', '1'], ['M320 70 L320 230', '2'], ['M440 70 L440 230', '3'], ['M440 230 L320 230', '3'], ['M320 230 L200 230', '23'], ['M200 230 L60 230', 'T']] },
+		mixed: { bulbs: [[170, 70, 'up'], [330, 150, 'right'], [450, 150, 'right']], paths: [['M60 70 L330 70', 'T'], ['M330 70 L450 70', '3'], ['M330 70 L330 230', '2'], ['M450 70 L450 230', '3'], ['M450 230 L330 230', '3'], ['M330 230 L60 230', 'T']] }
+	};
+	let local = [], keyed = [], bulbs = [], eLab = null;
+	const missions = missionList([
+		{ id: 's1a', text: '串聯模式：讓 R3 變成最亮的燈泡', xp: 20 },
+		{ id: 's1b', text: '並聯模式：讓總電阻小於 1.5 Ω', xp: 20 },
+		{ id: 's1c', text: '混合模式：讓 R2 和 R3 一樣亮', xp: 20 }
+	]);
+	panel.append(
+		seg('s1-mode', [['series', '串聯'], ['parallel', '並聯'], ['mixed', '混合：R1 串（R2 並 R3）']], st.mode, m => { st.mode = m; build(); }),
+		slider('s1-E', '電源 E', 1, 24, 1, st.E, 'V', v => { st.E = v; update(); }),
+		...[0, 1, 2].map(i => slider('s1-R' + (i + 1), 'R' + (i + 1), 1, 12, 1, st.R[i], 'Ω', v => { st.R[i] = v; update(); }))
+	);
+	const lT = lcd('總電阻 R<sub>T</sub>'), lI = lcd('總電流 I<sub>T</sub>');
+	panel.append(h('div', { class: 'lcds' }, lT, lI));
+	const tbody = h('tbody');
+	const cells = [0, 1, 2].map(i => { const tds = [h('td', null, 'R' + (i + 1)), h('td'), h('td'), h('td')]; tbody.append(h('tr', null, ...tds)); return tds; });
+	panel.append(h('table', { class: 'read' }, h('thead', null, h('tr', null, h('th', null, '燈泡'), h('th', null, '電壓 V'), h('th', null, '電流 A'), h('th', null, '功率 W'))), tbody));
+	const steps = h('div', { class: 'steps', 'aria-live': 'polite' });
+	panel.append(steps);
+	root.append(missions.el);
+
+	function build() {
+		flows = flows.filter(f => !local.includes(f));
+		wireL.replaceChildren(); flowL.replaceChildren(); partL.replaceChildren();
+		const g = G[st.mode];
+		wireL.append(s('path', { d: BAT, class: 'wire' }));
+		g.paths.forEach(([d]) => wireL.append(s('path', { d, class: 'wire' })));
+		keyed = [['T', addFlow(flowL, BAT, 0)], ...g.paths.map(([d, k]) => [k, addFlow(flowL, d, 0)])];
+		local = keyed.map(x => x[1]);
+		batteryV(partL, 60, 150);
+		eLab = s('text', { x: 88, y: 155, class: 'lbl' });
+		partL.append(eLab);
+		bulbs = g.bulbs.map(([x, y, pos]) => {
+			const b = bulb(partL, x, y);
+			const t = pos === 'up' ? s('text', { x, y: y - 30, class: 'lbl', 'text-anchor': 'middle' }) : s('text', { x: x + 28, y: y + 5, class: 'lbl' });
+			partL.append(t);
+			return { b, t };
+		});
+		update();
+	}
+	function update() {
+		const c = calc1(st.mode, st.E, st.R), [a, b, cc] = st.R, E = st.E;
+		const cur = { T: c.IT, '1': c.I[0], '2': c.I[1], '3': c.I[2], '23': c.I[1] + c.I[2] };
+		keyed.forEach(([k, f]) => setFlow(f, cur[k]));
+		eLab.textContent = `E = ${E} V`;
+		bulbs.forEach(({ b: bl, t }, i) => { const P = c.V[i] * c.I[i]; bl.set(Math.min(1, Math.sqrt(P / 40))); t.textContent = `R${i + 1} = ${st.R[i]} Ω`; });
+		lT.set(fmt(c.RT) + ' Ω'); lI.set(fmt(c.IT) + ' A');
+		cells.forEach((tds, i) => { tds[1].textContent = fmt(c.V[i]); tds[2].textContent = fmt(c.I[i]); tds[3].textContent = fmt(c.V[i] * c.I[i]); });
+		if (st.mode === 'series') steps.innerHTML = `<div>R<sub>T</sub> = ${a} + ${b} + ${cc} = <b>${fmt(c.RT)} Ω</b></div><div>I = E ÷ R<sub>T</sub> = ${E} ÷ ${fmt(c.RT)} = <b>${fmt(c.IT)} A</b>，三顆燈泡電流都一樣</div><div>V<sub>1</sub> = I × R<sub>1</sub> = ${fmt(c.IT)} × ${a} = ${fmt(c.V[0])} V：電阻越大分到越多電壓，也越亮</div>`;
+		else if (st.mode === 'parallel') steps.innerHTML = `<div>1/R<sub>T</sub> = 1/${a} + 1/${b} + 1/${cc}，R<sub>T</sub> = <b>${fmt(c.RT)} Ω</b></div><div>每顆燈泡電壓都是 ${E} V，I<sub>1</sub> = ${E} ÷ ${a} = ${fmt(c.I[0])} A</div><div>I<sub>T</sub> = I<sub>1</sub> + I<sub>2</sub> + I<sub>3</sub> = <b>${fmt(c.IT)} A</b>：電阻越小電流越大，也越亮</div>`;
+		else steps.innerHTML = `<div>R<sub>2</sub> 並 R<sub>3</sub> = ${b} × ${cc} ÷ (${b} + ${cc}) = ${fmt(c.p)} Ω</div><div>R<sub>T</sub> = ${a} + ${fmt(c.p)} = <b>${fmt(c.RT)} Ω</b>，I<sub>T</sub> = ${E} ÷ ${fmt(c.RT)} = <b>${fmt(c.IT)} A</b></div><div>並聯段電壓 = ${fmt(c.IT)} × ${fmt(c.p)} = ${fmt(c.Vp)} V，I<sub>2</sub> = ${fmt(c.I[1])} A、I<sub>3</sub> = ${fmt(c.I[2])} A</div>`;
+		missions.check('s1a', st.mode === 'series' && st.R[2] > st.R[0] && st.R[2] > st.R[1]);
+		missions.check('s1b', st.mode === 'parallel' && c.RT < 1.5);
+		missions.check('s1c', st.mode === 'mixed' && st.R[1] === st.R[2]);
+	}
+	build();
+}
+
+/* ---------- 實驗台 2：電源變身術 ---------- */
+function sim2(root) {
+	const st = { E: 12, r: 2, RL: 4 };
+	const { svg, panel } = simShell(root, '0 0 560 260', '實際電壓源和等效電流源接同一個負載');
+	const [wireL, flowL, partL] = layers(svg);
+	const P = { bat: 'M50 210 L50 148 M50 132 L50 70', loop: 'M50 70 L230 70 L230 210 L50 210', src: 'M330 210 L330 70', t1: 'M330 70 L410 70', t2: 'M410 70 L510 70', rb: 'M410 70 L410 210', load: 'M510 70 L510 210', b1: 'M510 210 L410 210', b2: 'M410 210 L330 210' };
+	Object.values(P).forEach(d => wireL.append(s('path', { d, class: 'wire' })));
+	const F = {}; Object.entries(P).forEach(([k, d]) => { F[k] = addFlow(flowL, d, 0); });
+	partL.append(
+		s('rect', { x: 18, y: 44, width: 146, height: 192, rx: 10, class: 'srcbox' }), s('text', { x: 91, y: 34, class: 'cap', 'text-anchor': 'middle' }, '實際電壓源'),
+		s('rect', { x: 300, y: 44, width: 162, height: 192, rx: 10, class: 'srcbox' }), s('text', { x: 381, y: 34, class: 'cap', 'text-anchor': 'middle' }, '實際電流源'),
+		s('rect', { x: 98, y: 61, width: 44, height: 18, rx: 3, class: 'res' }),
+		s('rect', { x: 221, y: 118, width: 18, height: 44, rx: 3, class: 'res adj' }),
+		s('circle', { cx: 330, cy: 140, r: 18, class: 'csrc' }),
+		s('path', { d: 'M330 152 L330 128 M323 135 L330 127 L337 135', class: 'arrow' }),
+		s('rect', { x: 401, y: 118, width: 18, height: 44, rx: 3, class: 'res' }),
+		s('rect', { x: 501, y: 118, width: 18, height: 44, rx: 3, class: 'res adj' }),
+		s('text', { x: 270, y: 142, 'text-anchor': 'middle', style: 'font-size:28px;font-weight:900;fill:var(--ink)' }, '⇄'),
+		s('text', { x: 270, y: 166, 'text-anchor': 'middle', class: 'cap' }, '等效')
+	);
+	batteryV(partL, 50, 140);
+	const T = {
+		E: s('text', { x: 76, y: 136, class: 'lbl' }), r1: s('text', { x: 120, y: 102, class: 'val', 'text-anchor': 'middle' }),
+		RL1: s('text', { x: 244, y: 145, class: 'lbl' }), Is: s('text', { x: 354, y: 145, class: 'lbl' }),
+		r2: s('text', { x: 424, y: 145, class: 'val' }), RL2: s('text', { x: 524, y: 145, class: 'lbl' })
+	};
+	Object.values(T).forEach(t => partL.append(t));
+	partL.append(s('text', { x: 76, y: 156, class: 'val' }, 'E'), s('text', { x: 244, y: 165, class: 'val' }, 'R_L'), s('text', { x: 354, y: 165, class: 'val' }, 'I'), s('text', { x: 424, y: 165, class: 'val' }, 'r'), s('text', { x: 524, y: 165, class: 'val' }, 'R_L'));
+	const missions = missionList([
+		{ id: 's2a', text: '讓負載拿到的電壓剛好是 E 的一半', xp: 20 },
+		{ id: 's2b', text: '把負載調成 0 Ω（短路），看短路電流 = E ÷ r', xp: 20 },
+		{ id: 's2c', text: '讓電流源剛好變成 10 A', xp: 20 }
+	]);
+	panel.append(
+		slider('s2-E', '電動勢 E', 1, 24, 1, st.E, 'V', v => { st.E = v; update(); }),
+		slider('s2-r', '內阻 r', 0.5, 5, 0.5, st.r, 'Ω', v => { st.r = v; update(); }),
+		slider('s2-RL', '負載 R<sub>L</sub>', 0, 20, 0.5, st.RL, 'Ω', v => { st.RL = v; update(); })
+	);
+	const l1 = lcd('負載電流（電壓源這邊）'), l2 = lcd('負載電流（電流源這邊）'), l3 = lcd('負載電壓 V<sub>L</sub>'), l4 = lcd('電流源 I = E ÷ r');
+	const stat = h('div', { class: 'status ok' }, '兩邊數字完全一樣：等效成功');
+	const loss = h('span', { class: 'loss' }), keep = h('span', { class: 'keep' });
+	const lgL = h('span', { class: 'l' }), lgK = h('span', { class: 'k' });
+	const steps = h('div', { class: 'steps' });
+	panel.append(h('div', { class: 'lcds' }, l1, l2, l3, l4), stat, h('div', { class: 'split', role: 'img', 'aria-label': '電動勢分給內阻和負載的比例' }, loss, keep), h('div', { class: 'legend' }, lgL, lgK), steps);
+	root.append(missions.el);
+	function update() {
+		const { E, r, RL } = st;
+		const I = E / (r + RL), Is = E / r, IL = Is * r / (r + RL), Ir = Is - IL, VL = I * RL;
+		setFlow(F.bat, I); setFlow(F.loop, I); setFlow(F.src, Is); setFlow(F.t1, Is); setFlow(F.t2, IL); setFlow(F.rb, Ir); setFlow(F.load, IL); setFlow(F.b1, IL); setFlow(F.b2, Is);
+		T.E.textContent = `${E} V`; T.r1.textContent = `r = ${fmt(r)} Ω`; T.RL1.textContent = `${fmt(RL)} Ω`;
+		T.Is.textContent = `${fmt(Is)} A`; T.r2.textContent = `${fmt(r)} Ω`; T.RL2.textContent = `${fmt(RL)} Ω`;
+		l1.set(fmt(I) + ' A'); l2.set(fmt(IL) + ' A'); l3.set(fmt(VL) + ' V'); l4.set(fmt(Is) + ' A');
+		const lp = (I * r) / E * 100;
+		loss.style.width = lp + '%'; keep.style.width = (100 - lp) + '%';
+		lgL.textContent = `內阻吃掉 I·r = ${fmt(I * r)} V`; lgK.textContent = `負載拿到 ${fmt(VL)} V`;
+		steps.innerHTML = `<div>左：I = E ÷ (r + R<sub>L</sub>) = ${E} ÷ ${fmt(r + RL)} = <b>${fmt(I)} A</b></div><div>端電壓 V = E − I·r = ${E} − ${fmt(I)} × ${fmt(r)} = <b>${fmt(VL)} V</b></div><div>右：I = E ÷ r = ${fmt(Is)} A，分到負載 ${fmt(Is)} × ${fmt(r)} ÷ ${fmt(r + RL)} = <b>${fmt(IL)} A</b></div>`;
+		missions.check('s2a', Math.abs(RL - r) < 1e-9);
+		missions.check('s2b', RL === 0);
+		missions.check('s2c', Math.abs(Is - 10) < 1e-9);
+	}
+	update();
+}
+
+/* ---------- 實驗台 3：電位雲霄飛車 ---------- */
+function sim3(root) {
+	const st = { E1: 20, E2: 8, R1: 2, R2: 4 };
+	const { svg, panel } = simShell(root, '0 0 560 300', '單一迴路和各點電位圖');
+	const [wireL, flowL, partL] = layers(svg);
+	const LOOP = 'M70 240 L70 158 M70 142 L70 60 L240 60 L240 142 M240 158 L240 240 L70 240';
+	wireL.append(s('path', { d: LOOP, class: 'wire' }));
+	const fl = addFlow(flowL, 'M70 60 L240 60 L240 142 M240 158 L240 240 L70 240 L70 158 M70 142 L70 60', 0);
+	partL.append(
+		s('rect', { x: 133, y: 51, width: 44, height: 18, rx: 3, class: 'res' }),
+		s('rect', { x: 133, y: 231, width: 44, height: 18, rx: 3, class: 'res' }),
+		s('path', { d: 'M70 240 L70 254 M56 254 L84 254 M61 260 L79 260 M66 266 L74 266', class: 'wire', 'stroke-width': 2.5 }),
+		s('text', { x: 48, y: 236, class: 'lbl' }, 'A'), s('text', { x: 48, y: 58, class: 'lbl' }, 'B'),
+		s('text', { x: 250, y: 58, class: 'lbl' }, 'C'), s('text', { x: 250, y: 236, class: 'lbl' }, 'D')
+	);
+	batteryV(partL, 70, 150);
+	partL.append(s('line', { x1: 222, y1: 142, x2: 258, y2: 142, class: 'plate' }), s('line', { x1: 231, y1: 158, x2: 249, y2: 158, class: 'plate', 'stroke-width': 6 }), s('text', { x: 264, y: 146, class: 'pm' }, '+'));
+	const tE1 = s('text', { x: 96, y: 146, class: 'lbl' }), tE2 = s('text', { x: 214, y: 146, class: 'lbl', 'text-anchor': 'end' });
+	const tR1 = s('text', { x: 155, y: 42, class: 'lbl', 'text-anchor': 'middle' }), tR2 = s('text', { x: 155, y: 278, class: 'lbl', 'text-anchor': 'middle' });
+	const tDir = s('text', { x: 155, y: 108, class: 'val', 'text-anchor': 'middle' });
+	partL.append(tE1, tE2, tR1, tR2, tDir, s('text', { x: 96, y: 166, class: 'val' }, 'E1'), s('text', { x: 214, y: 166, class: 'val', 'text-anchor': 'end' }, 'E2'));
+	// 電位圖
+	const yv = V => 160 - V * 105 / 24;
+	const XS = [312, 334, 420, 442, 530];
+	const chart = s('g');
+	partL.append(chart);
+	chart.append(s('text', { x: 306, y: 34, class: 'cap' }, '電位（V），從 A 出發順時針走'));
+	for (const v of [-24, -12, 0, 12, 24]) chart.append(s('line', { x1: 306, x2: 545, y1: yv(v), y2: yv(v), class: v === 0 ? 'zero' : 'gridl' }), s('text', { x: 300, y: yv(v) + 4, class: 'val', 'text-anchor': 'end' }, String(v)));
+	['A', 'B', 'C', 'D', 'A'].forEach((n, i) => chart.append(s('text', { x: XS[i], y: 290, class: 'lbl', 'text-anchor': 'middle' }, n)));
+	const vline = s('polyline', { class: 'vline' });
+	chart.append(vline);
+	const vdots = XS.map(x => { const d = s('circle', { cx: x, cy: 160, r: 4.5, class: 'vdot' }); chart.append(d); return d; });
+	const cartL = s('circle', { cx: 70, cy: 240, r: 9, class: 'cart', style: 'opacity:0' });
+	const cartC = s('circle', { cx: 312, cy: 160, r: 8, class: 'cart', style: 'opacity:0' });
+	partL.append(cartL, cartC);
+
+	const missions = missionList([
+		{ id: 's3a', text: '按「出發」讓電位車繞一圈，看它回到 0 V', xp: 20 },
+		{ id: 's3b', text: '讓迴路電流變成 0', xp: 20 },
+		{ id: 's3c', text: '讓電流變成逆時針（算出 I 是負的）', xp: 20 }
+	]);
+	panel.append(
+		slider('s3-E1', 'E1', 0, 24, 1, st.E1, 'V', v => { st.E1 = v; update(); }),
+		slider('s3-E2', 'E2', 0, 24, 1, st.E2, 'V', v => { st.E2 = v; update(); }),
+		slider('s3-R1', 'R1', 1, 12, 1, st.R1, 'Ω', v => { st.R1 = v; update(); }),
+		slider('s3-R2', 'R2', 1, 12, 1, st.R2, 'Ω', v => { st.R2 = v; update(); })
+	);
+	const lPos = lcd('電位車位置'), lV = lcd('目前電位');
+	const rideBtn = h('button', { class: 'btn primary', type: 'button' }, '出發！繞迴路一圈');
+	const log = h('ol', { class: 'ride-log', 'aria-live': 'polite' });
+	const steps = h('div', { class: 'steps' });
+	panel.append(h('div', { class: 'lcds' }, lPos, lV), rideBtn, log, steps);
+	root.append(missions.el);
+
+	function calc() {
+		const { E1, E2, R1, R2 } = st, I = (E1 - E2) / (R1 + R2);
+		const V = [0, E1, E1 - I * R1, E1 - I * R1 - E2, 0];
+		return { I, V, pts: V.map((v, i) => [XS[i], yv(v)]) };
+	}
+	function term(i, c) {
+		const { E1, E2, R1, R2 } = st;
+		return [`A→B 經過 E1（− 到 +）：+${E1} V`, `B→C 經過 R1：${signed(-c.I * R1)} V`, `C→D 經過 E2（+ 到 −）：−${E2} V`, `D→A 經過 R2：${signed(-c.I * R2)} V`][i];
+	}
+	function update() {
+		const c = calc(), { E1, E2, R1, R2 } = st;
+		setFlow(fl, c.I);
+		tE1.textContent = `${E1} V`; tE2.textContent = `${E2} V`;
+		tR1.textContent = `R1 = ${R1} Ω`; tR2.textContent = `R2 = ${R2} Ω`;
+		tDir.textContent = Math.abs(c.I) < 1e-9 ? '沒有電流' : c.I > 0 ? `I = ${fmt(c.I)} A 順時針` : `I = ${fmt(-c.I)} A 逆時針`;
+		vline.setAttribute('points', c.pts.map(p => p.join(',')).join(' '));
+		c.pts.forEach((p, i) => vdots[i].setAttribute('cy', p[1]));
+		if (!riding) { lPos.set('A（接地）'); lV.set('0 V'); }
+		steps.innerHTML = `<div>I = (E1 − E2) ÷ (R1 + R2) = (${E1} − ${E2}) ÷ (${R1} + ${R2}) = <b>${fmt(c.I)} A</b>${c.I < -1e-9 ? '（負號：實際是逆時針）' : ''}</div><div>V<sub>B</sub> = ${fmt(c.V[1])} V，V<sub>C</sub> = ${fmt(c.V[2])} V，V<sub>D</sub> = ${fmt(c.V[3])} V</div><div>${fmt(E1)} − ${fmt(c.I * R1)} − ${E2} − ${fmt(c.I * R2)} = <b>0</b>：升降加起來剛好是 0</div>`;
+		missions.check('s3b', E1 === E2);
+		missions.check('s3c', c.I < -1e-9);
+	}
+	let riding = false;
+	rideBtn.addEventListener('click', () => {
+		if (riding) return;
+		riding = true; rideBtn.disabled = true; log.replaceChildren(); sfx.click();
+		cartL.style.opacity = 1; cartC.style.opacity = 1;
+		const t0 = performance.now(), dur = reduceMotion ? 1 : 5200;
+		const LP = [[70, 240], [70, 60], [240, 60], [240, 240], [70, 240]];
+		const NM = ['A', 'B', 'C', 'D', 'A'];
+		let shown = 0;
+		rideFn = t => {
+			const u = Math.min(1, (t - t0) / dur), k = Math.min(3, Math.floor(u * 4)), fr = u >= 1 ? 1 : u * 4 - k;
+			const c = calc();
+			const lx = LP[k][0] + (LP[k + 1][0] - LP[k][0]) * fr, ly = LP[k][1] + (LP[k + 1][1] - LP[k][1]) * fr;
+			const px = c.pts[k][0] + (c.pts[k + 1][0] - c.pts[k][0]) * fr, py = c.pts[k][1] + (c.pts[k + 1][1] - c.pts[k][1]) * fr;
+			cartL.setAttribute('cx', lx); cartL.setAttribute('cy', ly); cartC.setAttribute('cx', px); cartC.setAttribute('cy', py);
+			const vNow = c.V[k] + (c.V[k + 1] - c.V[k]) * fr;
+			lPos.set(fr > 0.98 ? NM[k + 1] : `${NM[k]} → ${NM[k + 1]}`); lV.set(fmt(vNow) + ' V');
+			while (shown < k) { log.append(h('li', null, term(shown, c))); shown++; }
+			if (u >= 1) {
+				while (shown < 4) { log.append(h('li', null, term(shown, c))); shown++; }
+				log.append(h('li', { class: 'sum' }, '加總 = 0 V，回到 A 點：KVL 成立'));
+				rideFn = null; riding = false; rideBtn.disabled = false;
+				missions.check('s3a', true);
+			}
+		};
+	});
+	update();
+}
+
+/* ---------- 實驗台 4：節點交通警察 ---------- */
+function sim4(root) {
+	const st = { I: [3, 5, 2, 4], dir: ['in', 'in', 'out', 'out'] };
+	const { svg, panel } = simShell(root, '0 0 560 300', '四條支路接在同一個節點');
+	const [wireL, flowL, partL] = layers(svg);
+	const N = [200, 150], ENDS = [[40, 150], [200, 26], [200, 274], [360, 150]];
+	const LP = [[44, 134, 'start'], [214, 40, 'start'], [214, 268, 'start'], [356, 134, 'end']];
+	const br = ENDS.map(([x, y], i) => {
+		const line = s('line', { x1: x, y1: y, x2: N[0], y2: N[1], class: 'wire' });
+		wireL.append(line);
+		const f = addFlow(flowL, `M${x} ${y} L${N[0]} ${N[1]}`, 0);
+		const arrow = s('path', { class: 'arrow', fill: 'var(--ink)' });
+		const lab = s('text', { x: LP[i][0], y: LP[i][1], class: 'lbl', 'text-anchor': LP[i][2] });
+		partL.append(arrow, lab);
+		return { line, f, arrow, lab, x, y };
+	});
+	const node = s('circle', { cx: N[0], cy: N[1], r: 15, class: 'node ok' });
+	partL.append(node);
+	const barIn = s('rect', { x: 420, width: 46, class: 'bar-in' }), barOut = s('rect', { x: 488, width: 46, class: 'bar-out' });
+	const tIn = s('text', { x: 443, class: 'lbl', 'text-anchor': 'middle' }), tOut = s('text', { x: 511, class: 'lbl', 'text-anchor': 'middle' });
+	partL.append(s('line', { x1: 410, x2: 544, y1: 262, y2: 262, class: 'wire', 'stroke-width': 2 }), barIn, barOut, tIn, tOut,
+		s('text', { x: 443, y: 284, class: 'cap', 'text-anchor': 'middle' }, '流入'), s('text', { x: 511, y: 284, class: 'cap', 'text-anchor': 'middle' }, '流出'));
+	const missions = missionList([
+		{ id: 's4a', text: '讓節點平衡：流入總和 = 流出總和', xp: 20 },
+		{ id: 's4b', text: '把 I4 改成流入，而且節點仍然平衡', xp: 20 },
+		{ id: 's4c', text: '流入總和至少 15 A，並且保持平衡', xp: 20 }
+	]);
+	st.I.forEach((v, i) => {
+		const id = 's4-I' + (i + 1);
+		const out = h('output', { for: id }, v + ' A');
+		const inp = h('input', { type: 'range', id, min: 0, max: 10, step: 1, value: v });
+		const tog = h('button', { class: 'btn small', type: 'button' }, st.dir[i] === 'in' ? '流入' : '流出');
+		inp.addEventListener('input', () => { st.I[i] = parseFloat(inp.value); out.textContent = st.I[i] + ' A'; update(); });
+		tog.addEventListener('click', () => { st.dir[i] = st.dir[i] === 'in' ? 'out' : 'in'; tog.textContent = st.dir[i] === 'in' ? '流入' : '流出'; sfx.click(); update(); });
+		panel.append(h('div', { class: 'ctrl c4' }, h('label', { for: id }, 'I' + (i + 1)), inp, out, tog));
+	});
+	const stat = h('div', { class: 'status', 'aria-live': 'polite' });
+	const steps = h('div', { class: 'steps' });
+	panel.append(stat, steps, h('p', { class: 'hint' }, '按右邊的按鈕切換每條支路是流入還是流出節點。'));
+	root.append(missions.el);
+	function update() {
+		let sin = 0, sout = 0;
+		br.forEach((b, i) => {
+			const I = st.I[i], inn = st.dir[i] === 'in';
+			if (inn) sin += I; else sout += I;
+			setFlow(b.f, inn ? I : -I);
+			b.line.style.strokeWidth = 3 + I * 0.7;
+			const dx = N[0] - b.x, dy = N[1] - b.y, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L;
+			const d = inn ? 1 : -1, mx = b.x + dx * 0.45, my = b.y + dy * 0.45, sz = 8 + I * 0.8;
+			const tx = mx + ux * d * sz, ty = my + uy * d * sz, bx = mx - ux * d * sz * 0.6, by = my - uy * d * sz * 0.6;
+			b.arrow.setAttribute('d', I === 0 ? '' : `M${tx} ${ty} L${bx - uy * sz * 0.8} ${by + ux * sz * 0.8} L${bx + uy * sz * 0.8} ${by - ux * sz * 0.8} Z`);
+			b.lab.textContent = `I${i + 1} = ${I} A ${inn ? '流入' : '流出'}`;
+		});
+		const k = 5;
+		barIn.setAttribute('y', 262 - sin * k); barIn.setAttribute('height', sin * k);
+		barOut.setAttribute('y', 262 - sout * k); barOut.setAttribute('height', sout * k);
+		tIn.setAttribute('y', 254 - sin * k); tIn.textContent = sin + ' A';
+		tOut.setAttribute('y', 254 - sout * k); tOut.textContent = sout + ' A';
+		const ok = sin === sout;
+		node.setAttribute('class', 'node ' + (ok ? 'ok' : 'no'));
+		stat.className = 'status ' + (ok ? 'ok' : 'no');
+		stat.textContent = ok ? `平衡！流入 = 流出 = ${sin} A` : `節點塞車：流入 ${sin} A，流出 ${sout} A，差 ${Math.abs(sin - sout)} A`;
+		const ins = st.I.map((v, i) => st.dir[i] === 'in' ? v : null).filter(v => v !== null), outs = st.I.map((v, i) => st.dir[i] === 'out' ? v : null).filter(v => v !== null);
+		steps.innerHTML = `<div>ΣI<sub>入</sub> = ${ins.length ? ins.join(' + ') : '0'} = <b>${sin} A</b></div><div>ΣI<sub>出</sub> = ${outs.length ? outs.join(' + ') : '0'} = <b>${sout} A</b></div><div>KCL：兩個要相等，節點才不會堆電荷</div>`;
+		missions.check('s4a', ok && sin > 0);
+		missions.check('s4b', ok && st.dir[3] === 'in' && st.I[3] > 0);
+		missions.check('s4c', ok && sin >= 15);
+	}
+	update();
+}
+
+/* ---------- 實驗台 5：電橋開鎖 ---------- */
+function bridgeNums() {
+	for (let k = 0; k < 300; k++) {
+		const R1 = pick([1, 2, 3, 4, 5, 6, 8, 10]), R2 = rnd(1, 20), R3 = rnd(1, 20), t = R2 * R3 / R1;
+		if (t >= 1 && t <= 30 && nice(t)) return [R1, R2, R3, t];
+	}
+	return [2, 4, 3, 6];
+}
+function sim5(root) {
+	const E = 12;
+	const st = { R1: 2, R2: 4, R3: 3, target: 6, R4: 15, solved: false };
+	const { svg, panel } = simShell(root, '0 0 560 300', '惠斯登電橋和檢流計');
+	const g = s('g'); svg.append(g);
+	const A = [150, 40], C = [50, 150], D = [250, 150], B = [150, 260];
+	resBox(g, ...A, ...C); resBox(g, ...A, ...D); resBox(g, ...C, ...B); resBox(g, ...D, ...B, 'adj');
+	g.append(
+		s('line', { x1: 50, y1: 150, x2: 134, y2: 150, class: 'wire' }), s('line', { x1: 166, y1: 150, x2: 250, y2: 150, class: 'wire' }),
+		s('circle', { cx: 150, cy: 150, r: 16, class: 'csrc' }), s('text', { x: 150, y: 156, class: 'lbl', 'text-anchor': 'middle' }, 'G'),
+		s('line', { x1: 150, y1: 40, x2: 150, y2: 20, class: 'wire' }), s('circle', { cx: 150, cy: 16, r: 4, class: 'csrc' }),
+		s('line', { x1: 150, y1: 260, x2: 150, y2: 280, class: 'wire' }), s('circle', { cx: 150, cy: 284, r: 4, class: 'csrc' }),
+		s('text', { x: 162, y: 21, class: 'val' }, 'A 接 +12 V'), s('text', { x: 162, y: 289, class: 'val' }, 'B 接 0 V'),
+		s('text', { x: 36, y: 155, class: 'lbl', 'text-anchor': 'end' }, 'C'), s('text', { x: 264, y: 155, class: 'lbl' }, 'D')
+	);
+	for (const [x, y] of [A, B, C, D]) g.append(s('circle', { cx: x, cy: y, r: 4, fill: 'var(--ink)' }));
+	const tR = [s('text', { x: 84, y: 82, class: 'lbl', 'text-anchor': 'end' }), s('text', { x: 216, y: 82, class: 'lbl' }), s('text', { x: 84, y: 226, class: 'lbl', 'text-anchor': 'end' }), s('text', { x: 216, y: 226, class: 'lbl', fill: 'var(--b3)' })];
+	tR.forEach(t => g.append(t));
+	// 檢流計錶面
+	const cx = 430, cy = 200, Rr = 112;
+	const pt = (deg, r) => [cx + r * Math.sin(deg * Math.PI / 180), cy - r * Math.cos(deg * Math.PI / 180)];
+	g.append(s('rect', { x: 312, y: 60, width: 236, height: 172, rx: 14, class: 'face' }));
+	const [a1x, a1y] = pt(-60, Rr), [a2x, a2y] = pt(60, Rr);
+	g.append(s('path', { d: `M${a1x} ${a1y} A${Rr} ${Rr} 0 0 1 ${a2x} ${a2y}`, class: 'dial' }));
+	for (const d of [-60, -30, 0, 30, 60]) { const [x1, y1] = pt(d, Rr - 12), [x2, y2] = pt(d, Rr); g.append(s('line', { x1, y1, x2, y2, class: 'dial', 'stroke-width': d === 0 ? 4 : 2.5 })); }
+	g.append(s('text', { x: cx, y: 78, class: 'lbl', 'text-anchor': 'middle' }, '0'), s('text', { x: cx, y: 224, class: 'cap', 'text-anchor': 'middle' }, '檢流計 G'));
+	const needle = s('line', { x1: cx, y1: cy, x2: cx, y2: cy - 100, class: 'needle' });
+	g.append(needle, s('circle', { cx, cy, r: 7, fill: 'var(--ink)' }));
+	const lock = s('g', { class: 'lock' }, s('path', { d: 'M420 262 v-8 a10 10 0 0 1 20 0 v8', class: 'shackle' }), s('rect', { x: 412, y: 262, width: 36, height: 28, rx: 5, class: 'lockbody' }));
+	g.append(lock);
+
+	const missions = missionList([
+		{ id: 's5a', text: '打開第 1 道鎖', xp: 20 },
+		{ id: 's5b', text: '累積打開 3 道鎖', xp: 30 },
+		{ id: 's5c', text: '累積打開 5 道鎖', xp: 40 }
+	]);
+	const counter = h('p', { class: 'hint' });
+	const sR4 = slider('s5-R4', '<span style="color:var(--b3)">R4</span>', 0.5, 30, 0.5, st.R4, 'Ω', v => { st.R4 = v; update(); });
+	const lA = lcd('R1 × R4'), lB = lcd('R2 × R3'), lC = lcd('V<sub>C</sub>'), lD = lcd('V<sub>D</sub>');
+	const stat = h('div', { class: 'status no', 'aria-live': 'polite' });
+	const nextBtn = h('button', { class: 'btn', type: 'button' }, '換一道鎖');
+	nextBtn.addEventListener('click', () => { sfx.click(); newLock(); });
+	panel.append(h('p', { class: 'hint' }, '轉動 R4，讓檢流計指針停在正中間的 0，鎖就會打開。'), sR4, h('div', { class: 'lcds' }, lA, lB, lC, lD), stat, nextBtn, counter);
+	root.append(missions.el);
+	function newLock() {
+		const [R1, R2, R3, t] = bridgeNums();
+		let R4 = 15;
+		for (let k = 0; k < 100; k++) { R4 = rnd(1, 60) / 2; if (Math.abs(R4 - t) >= 3) break; }
+		Object.assign(st, { R1, R2, R3, target: t, R4, solved: false });
+		sR4.set(R4); lock.classList.remove('open');
+		update();
+	}
+	function update() {
+		const { R1, R2, R3, R4 } = st;
+		const VC = E * R3 / (R1 + R3), VD = E * R4 / (R2 + R4), diff = VC - VD;
+		const deg = 60 * Math.tanh(diff * 1.3), [nx, ny] = pt(deg, 100);
+		needle.setAttribute('x2', nx); needle.setAttribute('y2', ny);
+		tR[0].textContent = `R1 = ${R1} Ω`; tR[1].textContent = `R2 = ${R2} Ω`; tR[2].textContent = `R3 = ${R3} Ω`; tR[3].textContent = `R4 = ${fmt(R4)} Ω`;
+		lA.set(fmt(R1 * R4)); lB.set(fmt(R2 * R3)); lC.set(fmt(VC) + ' V'); lD.set(fmt(VD) + ' V');
+		const bal = Math.abs(R1 * R4 - R2 * R3) < 1e-9;
+		stat.className = 'status ' + (bal ? 'ok' : 'no');
+		stat.textContent = bal ? `解鎖成功！R1 × R4 = R2 × R3 = ${fmt(R1 * R4)}` : (diff > 0 ? '指針偏右：V_C 比 V_D 高，R4 要再調大' : '指針偏左：V_D 比 V_C 高，R4 要再調小');
+		counter.textContent = `已經打開 ${S.locks} 道鎖`;
+		if (bal && !st.solved) {
+			st.solved = true; S.locks++; save(); lock.classList.add('open');
+			counter.textContent = `已經打開 ${S.locks} 道鎖`;
+			const r = svg.getBoundingClientRect(); confetti(r.left + r.width * 0.77, r.top + r.height * 0.85, 50);
+			sfx.win(); addXP(15, '開鎖成功');
+			missions.check('s5a', S.locks >= 1); missions.check('s5b', S.locks >= 3); missions.check('s5c', S.locks >= 5);
+		}
+	}
+	newLock();
+}
+
+/* ---------- 實驗台 6：Y–Δ 變身工坊 ---------- */
+function sim6(root) {
+	const st = { mode: 'd2y', D: { ab: 10, bc: 20, ca: 20 }, Y: { a: 2, b: 2, c: 1 }, row: 0 };
+	const { svg, panel } = simShell(root, '0 0 560 300', 'Δ 接和 Y 接對照圖');
+	const g = s('g'); svg.append(g);
+	const Da = [170, 52], Db = [70, 232], Dc = [270, 232], Yn = [420, 165], Ya = [420, 52], Yb = [320, 232], Yc = [520, 232];
+	const R = { ab: resBox(g, ...Da, ...Db), bc: resBox(g, ...Db, ...Dc), ca: resBox(g, ...Dc, ...Da), a: resBox(g, ...Yn, ...Ya), b: resBox(g, ...Yn, ...Yb), c: resBox(g, ...Yn, ...Yc) };
+	for (const [x, y] of [Da, Db, Dc, Ya, Yb, Yc, Yn]) g.append(s('circle', { cx: x, cy: y, r: 4, fill: 'var(--ink)' }));
+	g.append(s('text', { x: 170, y: 38, class: 'lbl', 'text-anchor': 'middle' }, 'a'), s('text', { x: 56, y: 250, class: 'lbl', 'text-anchor': 'end' }, 'b'), s('text', { x: 284, y: 250, class: 'lbl' }, 'c'),
+		s('text', { x: 420, y: 38, class: 'lbl', 'text-anchor': 'middle' }, 'a'), s('text', { x: 306, y: 250, class: 'lbl', 'text-anchor': 'end' }, 'b'), s('text', { x: 534, y: 250, class: 'lbl' }, 'c'),
+		s('text', { x: 170, y: 292, class: 'cap', 'text-anchor': 'middle' }, 'Δ 接'), s('text', { x: 420, y: 292, class: 'cap', 'text-anchor': 'middle' }, 'Y 接'));
+	const mode = s('text', { x: 295, y: 24, 'text-anchor': 'middle', style: 'font-size:20px;font-weight:900;fill:var(--b6)' });
+	g.append(mode);
+	const LBL = { ab: [98, 134, 'end'], ca: [242, 134, 'start'], bc: [170, 258, 'middle'], a: [434, 104, 'start'], b: [356, 206, 'end'], c: [484, 206, 'start'] };
+	const NAME = { ab: 'Rab', bc: 'Rbc', ca: 'Rca', a: 'Ra', b: 'Rb', c: 'Rc' };
+	const T = {};
+	for (const [k, [x, y, an]] of Object.entries(LBL)) {
+		const t = s('text', { x, y, class: 'lbl', 'text-anchor': an }, s('tspan', null, NAME[k]), s('tspan', { x, dy: 18, class: 'val' }));
+		g.append(t); T[k] = t.lastChild;
+	}
+	const missions = missionList([
+		{ id: 's6a', text: 'Δ→Y：讓 Y 的三個電阻全部相等', xp: 20 },
+		{ id: 's6b', text: 'Δ→Y：讓 Ra 剛好等於 2 Ω', xp: 20 },
+		{ id: 's6c', text: 'Y→Δ：讓 Rab 剛好等於 9 Ω', xp: 20 }
+	]);
+	const inputs = h('div', { class: 'panel' });
+	const rows = h('div', { class: 'frows' });
+	panel.append(
+		seg('s6-mode', [['d2y', 'Δ → Y'], ['y2d', 'Y → Δ']], st.mode, m => { st.mode = m; st.row = 0; buildInputs(); }),
+		inputs,
+		h('p', { class: 'hint' }, '點一行公式：藍色是要算的電阻，紅色是公式裡關鍵的電阻。'),
+		rows
+	);
+	root.append(missions.el);
+	function buildInputs() {
+		inputs.replaceChildren();
+		if (st.mode === 'd2y') ['ab', 'bc', 'ca'].forEach(k => inputs.append(slider('s6-' + k, 'R<sub>' + k + '</sub>', 1, 30, 1, st.D[k], 'Ω', v => { st.D[k] = v; update(); })));
+		else ['a', 'b', 'c'].forEach(k => inputs.append(slider('s6-' + k, 'R<sub>' + k + '</sub>', 1, 30, 1, st.Y[k], 'Ω', v => { st.Y[k] = v; update(); })));
+		update();
+	}
+	function update() {
+		let out, defs;
+		if (st.mode === 'd2y') {
+			const { ab, bc, ca } = st.D, sum = ab + bc + ca;
+			out = { ab, bc, ca, a: ab * ca / sum, b: ab * bc / sum, c: bc * ca / sum };
+			defs = [
+				['a', ['ab', 'ca'], `R<sub>a</sub> = R<sub>ab</sub> × R<sub>ca</sub> ÷ 三邊和 = ${ab} × ${ca} ÷ ${sum} = <b>${fmt(out.a)} Ω</b>`],
+				['b', ['ab', 'bc'], `R<sub>b</sub> = R<sub>ab</sub> × R<sub>bc</sub> ÷ 三邊和 = ${ab} × ${bc} ÷ ${sum} = <b>${fmt(out.b)} Ω</b>`],
+				['c', ['bc', 'ca'], `R<sub>c</sub> = R<sub>bc</sub> × R<sub>ca</sub> ÷ 三邊和 = ${bc} × ${ca} ÷ ${sum} = <b>${fmt(out.c)} Ω</b>`]
+			];
+			mode.textContent = 'Δ → Y：鄰邊相乘 ÷ 三邊和';
+		} else {
+			const { a, b, c } = st.Y, P = a * b + b * c + c * a;
+			out = { a, b, c, ab: P / c, bc: P / a, ca: P / b };
+			defs = [
+				['ab', ['c'], `R<sub>ab</sub> = (${a}×${b} + ${b}×${c} + ${c}×${a}) ÷ R<sub>c</sub> = ${P} ÷ ${c} = <b>${fmt(out.ab)} Ω</b>`],
+				['bc', ['a'], `R<sub>bc</sub> = ${P} ÷ R<sub>a</sub> = ${P} ÷ ${a} = <b>${fmt(out.bc)} Ω</b>`],
+				['ca', ['b'], `R<sub>ca</sub> = ${P} ÷ R<sub>b</sub> = ${P} ÷ ${b} = <b>${fmt(out.ca)} Ω</b>`]
+			];
+			mode.textContent = 'Y → Δ：兩兩相乘相加 ÷ 對面';
+		}
+		for (const k of Object.keys(T)) T[k].textContent = fmt(out[k]) + ' Ω';
+		rows.replaceChildren();
+		defs.forEach(([target, keys, html], i) => {
+			const row = h('div', { class: 'frow' + (i === st.row ? ' on' : ''), tabindex: '0', role: 'button', html });
+			const act = () => { st.row = i; paint(defs); rows.querySelectorAll('.frow').forEach((r, j) => r.classList.toggle('on', j === i)); };
+			row.addEventListener('click', act); row.addEventListener('focus', act); row.addEventListener('mouseenter', act);
+			rows.append(row);
+		});
+		paint(defs);
+		if (st.mode === 'd2y') {
+			missions.check('s6a', st.D.ab === st.D.bc && st.D.bc === st.D.ca);
+			missions.check('s6b', Math.abs(out.a - 2) < 1e-9);
+		} else missions.check('s6c', Math.abs(out.ab - 9) < 1e-9);
+	}
+	function paint(defs) {
+		for (const r of Object.values(R)) r.setAttribute('class', 'res');
+		const [target, keys] = defs[st.row];
+		R[target].setAttribute('class', 'res hl');
+		keys.forEach(k => R[k].setAttribute('class', 'res hl2'));
+	}
+	buildInputs();
+}
+
+/* ---------- 題庫 ---------- */
+function Q(q, correct, wrongs, ex) {
+	const o = [correct];
+	for (const w of wrongs) { if (o.length >= 4) break; if (w && !o.includes(w)) o.push(w); }
+	return { q, correct, opts: shuffle(o), ex };
+}
+function NQ(q, ans, unit, cands, ex, allowNeg) {
+	const f = v => fmt(v) + (unit ? ' ' + unit : '');
+	const pool = [...cands, ans * 2, ans / 2, ans + 1, ans + 2, ans - 1, ans * 3, ans + 3];
+	const ws = pool.filter(v => isFinite(v) && (allowNeg || v > 0) && Math.abs(v - ans) > 1e-9).map(f);
+	return Q(q, f(ans), ws, ex);
+}
+const PAR = [[3, 6], [4, 12], [6, 12], [2, 2], [10, 15], [4, 4], [6, 6], [5, 20], [9, 18], [12, 24], [2, 6], [8, 8], [10, 10], [12, 12], [20, 30], [6, 3], [12, 4], [20, 5]];
+const U1 = [
+	() => { const R = [rnd(1, 8), rnd(1, 8), rnd(1, 8)], RT = R[0] + R[1] + R[2], I = pick([1, 2, 3, 0.5]), E = I * RT, Rp = 1 / (1 / R[0] + 1 / R[1] + 1 / R[2]);
+		return NQ(`R1 = ${R[0]} Ω、R2 = ${R[1]} Ω、R3 = ${R[2]} Ω 串聯，接到 ${fmt(E)} V 電源，電路電流是多少？`, I, 'A', [E / Rp, E / R[0], E / (R[0] + R[1])], `串聯總電阻 R<sub>T</sub> = ${R[0]} + ${R[1]} + ${R[2]} = ${RT} Ω，I = E ÷ R<sub>T</sub> = ${fmt(E)} ÷ ${RT} = ${fmt(I)} A。`); },
+	() => { const R1 = rnd(1, 10); let R2 = rnd(1, 10); if (R1 === R2) R2 = R2 % 10 + 1; const RT = R1 + R2, E = RT * pick([1, 2, 3]), V2 = E * R2 / RT;
+		return NQ(`R1 = ${R1} Ω 和 R2 = ${R2} Ω 串聯接 ${E} V，R2 兩端的電壓是多少？`, V2, 'V', [E * R1 / RT, E / 2, E], `分壓：V<sub>2</sub> = E × R<sub>2</sub> ÷ (R<sub>1</sub> + R<sub>2</sub>) = ${E} × ${R2} ÷ ${RT} = ${fmt(V2)} V。電阻越大分到越多電壓，乘成 R<sub>1</sub> 就會算出 ${fmt(E * R1 / RT)} V。`); },
+	() => { const [a, b] = shuffle(pick(PAR)), p = par(a, b);
+		return NQ(`${a} Ω 和 ${b} Ω 並聯，總電阻是多少？`, p, 'Ω', [a + b, (a + b) / 2, Math.min(a, b)], `兩個電阻並聯用「積 ÷ 和」：${a} × ${b} ÷ (${a} + ${b}) = ${a * b} ÷ ${a + b} = ${fmt(p)} Ω。並聯總電阻一定比最小的 ${Math.min(a, b)} Ω 還小。`); },
+	() => { const [a, b] = shuffle(pick(PAR)), g = gcd(a + b, b), I = pick([1, 2]) * (a + b) / g, I1 = I * b / (a + b);
+		return NQ(`總電流 ${fmt(I)} A 流進 R1 = ${a} Ω 和 R2 = ${b} Ω 的並聯電路，流過 R1 的電流是多少？`, I1, 'A', [I * a / (a + b), I / 2, I], `分流：I<sub>1</sub> = I × R<sub>2</sub> ÷ (R<sub>1</sub> + R<sub>2</sub>) = ${fmt(I)} × ${b} ÷ ${a + b} = ${fmt(I1)} A。分子要乘「另一個」電阻。`); },
+	() => { const [a, b] = shuffle(pick(PAR)), p = par(a, b), R1 = rnd(1, 8), RT = R1 + p, E = RT * pick([1, 2, 3]), I = E / RT;
+		return NQ(`R1 = ${R1} Ω 串聯一組並聯電阻（${a} Ω 並 ${b} Ω），接 ${fmt(E)} V，總電流是多少？`, I, 'A', [E / (R1 + a + b), E / R1, E / p], `先算並聯：${a} × ${b} ÷ ${a + b} = ${fmt(p)} Ω；R<sub>T</sub> = ${R1} + ${fmt(p)} = ${fmt(RT)} Ω；I = ${fmt(E)} ÷ ${fmt(RT)} = ${fmt(I)} A。`); },
+	() => { const [big, small] = pick([[100, 60], [100, 40], [60, 40], [100, 25], [60, 25], [40, 25]]), ser = Math.random() < .5;
+		const ans = ser ? `${small} W 的燈泡較亮` : `${big} W 的燈泡較亮`, other = ser ? `${big} W 的燈泡較亮` : `${small} W 的燈泡較亮`;
+		return Q(`兩個 110 V 的燈泡，一個 ${big} W、一個 ${small} W，${ser ? '串聯後' : '並聯後'}接到 110 V，哪一個比較亮？`, ans, [other, '兩個一樣亮', '兩個都不會亮'], ser ? `R = V² ÷ P，瓦數小的電阻大。串聯電流相同，P = I²R，電阻大的 ${small} W 反而比較亮。` : `並聯時兩個都拿到 110 V，P = V² ÷ R，電阻小的 ${big} W 比較亮。`); },
+	() => { const [R, n] = pick([[6, 2], [6, 3], [12, 2], [12, 3], [12, 4], [24, 3], [24, 4], [30, 3], [60, 4], [18, 3], [20, 4], [10, 5]]);
+		return NQ(`${n} 個 ${R} Ω 的電阻並聯，總電阻是多少？`, R / n, 'Ω', [R * n, R, R / (n + 1)], `${n} 個相同電阻並聯 = R ÷ n = ${R} ÷ ${n} = ${fmt(R / n)} Ω。`); }
+];
+const U2 = [
+	() => { const r = pick([0.5, 1, 2]), RL = pick([3, 4, 5, 5.5, 7, 9, 10]), I = pick([1, 2, 3]), E = I * (r + RL), V = E - I * r;
+		return NQ(`電池電動勢 ${fmt(E)} V、內阻 ${fmt(r)} Ω，接 ${fmt(RL)} Ω 負載，端電壓是多少？`, V, 'V', [E, I * r, E + I * r], `I = E ÷ (r + R<sub>L</sub>) = ${fmt(E)} ÷ ${fmt(r + RL)} = ${I} A；端電壓 V = E − I·r = ${fmt(E)} − ${I} × ${fmt(r)} = ${fmt(V)} V。`); },
+	() => { const [E, r] = pick([[12, 2], [12, 3], [10, 2], [20, 4], [24, 3], [6, 0.5], [9, 3], [15, 5], [12, 4], [18, 2]]), I = E / r;
+		return Q(`${E} V 電壓源串聯內阻 ${fmt(r)} Ω，換成等效電流源是？`, `${fmt(I)} A 電流源並聯 ${fmt(r)} Ω`, [`${fmt(I)} A 電流源串聯 ${fmt(r)} Ω`, `${fmt(E * r)} A 電流源並聯 ${fmt(r)} Ω`, `${E} A 電流源並聯 ${fmt(r)} Ω`, `${fmt(E * r)} A 電流源串聯 ${fmt(r)} Ω`], `I = E ÷ r = ${E} ÷ ${fmt(r)} = ${fmt(I)} A；內阻數值不變，從串聯改成並聯。`); },
+	() => { const [I, r] = pick([[3, 2], [4, 3], [5, 2], [2, 6], [6, 0.5], [10, 1.5], [2.5, 4]]), E = I * r;
+		return Q(`${fmt(I)} A 電流源並聯內阻 ${fmt(r)} Ω，換成等效電壓源是？`, `${fmt(E)} V 電壓源串聯 ${fmt(r)} Ω`, [`${fmt(E)} V 電壓源並聯 ${fmt(r)} Ω`, `${fmt(I / r)} V 電壓源串聯 ${fmt(r)} Ω`, `${fmt(I)} V 電壓源串聯 ${fmt(r)} Ω`, `${fmt(E * 2)} V 電壓源串聯 ${fmt(r)} Ω`], `E = I × r = ${fmt(I)} × ${fmt(r)} = ${fmt(E)} V；內阻改成串聯。`); },
+	() => { const [E, r] = pick([[12, 0.5], [9, 1.5], [6, 0.2], [12, 2], [24, 0.5], [1.5, 0.5]]);
+		return NQ(`電池 ${fmt(E)} V、內阻 ${fmt(r)} Ω，兩端直接短路，短路電流是多少？`, E / r, 'A', [E * r, E, E / (r + 1)], `短路時負載是 0 Ω，只剩內阻：I = E ÷ r = ${fmt(E)} ÷ ${fmt(r)} = ${fmt(E / r)} A。`); },
+	() => { const E1 = rnd(3, 15); let E2 = rnd(2, 12); if (E1 === E2) E2 += 1; const aid = Math.random() < .5, ans = aid ? E1 + E2 : Math.abs(E1 - E2);
+		return NQ(`${E1} V 和 ${E2} V 兩個電壓源${aid ? '同向（一個的 + 接另一個的 −）' : '反向（+ 接 +）'}串聯，總電壓是多少？`, ans, 'V', [aid ? Math.abs(E1 - E2) : E1 + E2, Math.max(E1, E2), (E1 + E2) / 2], aid ? `同向串聯相加：${E1} + ${E2} = ${ans} V。` : `反向串聯相減：${Math.max(E1, E2)} − ${Math.min(E1, E2)} = ${ans} V，方向跟電壓大的那個一樣。`); },
+	() => { const v = Math.random() < .5;
+		return Q(v ? '理想電壓源的內阻是多少？' : '理想電流源的內阻是多少？', v ? '0 Ω' : '無限大', v ? ['無限大', '1 Ω', '等於負載電阻'] : ['0 Ω', '1 Ω', '等於負載電阻'], v ? '理想電壓源接什麼負載電壓都不變，所以內阻是 0，沒有壓降。' : '理想電流源接什麼負載電流都不變，所以內阻無限大，電流不會從內阻分走。'); }
+];
+const U3 = [
+	() => { const R1 = rnd(1, 6), R2 = rnd(1, 6), I = pick([0.5, 1, 2, 3]), E2 = rnd(2, 10), E1 = E2 + I * (R1 + R2);
+		return NQ(`一個迴路有 E1 = ${fmt(E1)} V 和 E2 = ${E2} V（極性相反），串聯 R1 = ${R1} Ω、R2 = ${R2} Ω，迴路電流是多少？`, I, 'A', [(E1 + E2) / (R1 + R2), E1 / (R1 + R2), E2 / (R1 + R2)], `KVL：E1 − E2 = I × (R1 + R2)，I = (${fmt(E1)} − ${E2}) ÷ (${R1} + ${R2}) = ${fmt(I)} A。極性相反要相減。`); },
+	() => { const V1 = rnd(1, 8), V2 = rnd(1, 8), V3 = rnd(1, 8), E = V1 + V2 + V3;
+		return NQ(`${E} V 電源串聯三個電阻，已知 V1 = ${V1} V、V2 = ${V2} V，第三個電阻的電壓 V3 是多少？`, V3, 'V', [E - V1, V1 + V2, E], `KVL：電壓升 = 電壓降，${E} = ${V1} + ${V2} + V3，V3 = ${V3} V。`); },
+	() => { const Va = rnd(4, 20), I = pick([1, 2, 3]), R = rnd(1, 8), Vb = Va - I * R;
+		return NQ(`電流 ${I} A 從 a 點經過 ${R} Ω 電阻流到 b 點，V<sub>a</sub> = ${Va} V，V<sub>b</sub> 是多少？`, Vb, 'V', [Va + I * R, I * R, Va], `順著電流經過電阻，電位下降 I·R = ${I} × ${R} = ${I * R} V，V<sub>b</sub> = ${Va} − ${I * R} = ${Vb} V。`, true); },
+	() => { const Va = rnd(-10, 15); let Vb = rnd(-10, 15); if (Va === Vb) Vb -= 3;
+		return NQ(`V<sub>a</sub> = ${Va} V、V<sub>b</sub> = ${Vb} V，V<sub>ab</sub> 是多少？`, Va - Vb, 'V', [Vb - Va, Va + Vb, Math.abs(Va) + Math.abs(Vb)], `V<sub>ab</sub> = V<sub>a</sub> − V<sub>b</sub> = ${Va} − (${Vb}) = ${Va - Vb} V。`, true); },
+	() => Math.random() < .5
+		? Q('用 KVL 算出迴路電流 I = −2 A，代表什麼？', '電流 2 A，實際方向和假設相反', ['算錯了，要重算', '電流是 0', '電阻變成負的'], '負號只表示方向猜反了，大小 2 A 是對的，不用重算。')
+		: Q('沿著一個封閉迴路走一圈，所有電壓升降的代數和等於多少？', '0', ['電源電壓', '電源電壓的兩倍', '無法確定'], 'KVL：回到出發點電位一樣，所以升降加起來剛好是 0。')
+];
+const U4 = [
+	() => { const a = rnd(1, 9), b = rnd(1, 9), c = rnd(1, a + b - 1), I = a + b - c;
+		return NQ(`一個節點流進 ${a} A 和 ${b} A，流出 ${c} A 和 I，I 是多少？`, I, 'A', [a + b + c, Math.abs(a - b), c], `KCL：流進 = 流出，${a} + ${b} = ${c} + I，I = ${I} A。`); },
+	() => { const a = rnd(1, 6), b = rnd(a + 1, 12), d = b - a;
+		return Q(`一個節點流進 ${a} A，流出 ${b} A 和 I（I 先假設為流出），算出來的結果代表什麼？`, `I = −${d} A，實際是流進 ${d} A`, [`I = ${d} A，流出`, `I = ${a + b} A，流出`, 'I = 0 A'], `${a} = ${b} + I，I = ${a} − ${b} = −${d} A；負號表示實際方向和假設相反，是流進 ${d} A。`); },
+	() => { const n = pick([2, 3]), brs = Array.from({ length: n }, () => rnd(1, 8)), T = brs.reduce((x, y) => x + y, 0);
+		return NQ(`${n} 個電阻並聯，各支路電流分別是 ${brs.join(' A、')} A，電源供應的總電流是多少？`, T, 'A', [Math.max(...brs), T / n, T * 2], `並聯總電流就是 KCL：各支路電流相加，${brs.join(' + ')} = ${T} A。`); },
+	() => { const T = rnd(6, 15), i1 = rnd(1, T - 3), i2 = rnd(1, T - i1 - 1), i3 = T - i1 - i2;
+		return NQ(`總電流 ${T} A 分到三條並聯支路，其中兩條是 ${i1} A 和 ${i2} A，第三條是多少？`, i3, 'A', [T - i1, i1 + i2, T], `KCL：${T} = ${i1} + ${i2} + I<sub>3</sub>，I<sub>3</sub> = ${i3} A。`); },
+	() => Q('KCL 是根據哪一個守恆定律？', '電荷守恆', ['能量守恆', '動量守恆', '質量守恆'], '電荷不會在節點堆積或消失，所以流進多少就流出多少。KVL 才是能量守恆。')
+];
+const U5 = [
+	() => { const [R1, R2, R3, R4] = bridgeNums();
+		return NQ(`惠斯登電橋 R1 = ${R1} Ω、R2 = ${R2} Ω、R3 = ${R3} Ω，要平衡時 R4 是多少？（R1 和 R4 是對邊）`, R4, 'Ω', [R1 * R2 / R3, R1 * R3 / R2, R2 * R3], `平衡：R1 × R4 = R2 × R3，R4 = ${R2} × ${R3} ÷ ${R1} = ${fmt(R4)} Ω。`); },
+	() => { const [R1, R2, R3, t] = bridgeNums(), bal = Math.random() < .5, R4 = bal ? t : t + pick([1, 2, 3, 0.5]);
+		return Q(`R1 = ${R1} Ω、R2 = ${R2} Ω、R3 = ${R3} Ω、R4 = ${fmt(R4)} Ω（R1 和 R4 是對邊），電橋平衡嗎？`, bal ? '平衡，檢流計沒有電流' : '不平衡，檢流計有電流', [bal ? '不平衡，檢流計有電流' : '平衡，檢流計沒有電流'], `比對邊乘積：R1 × R4 = ${fmt(R1 * R4)}，R2 × R3 = ${R2 * R3}，${bal ? '相等，所以平衡' : '不相等，所以不平衡'}。`); },
+	() => { const sm = pick([3, 4, 6, 8, 9, 12]), R1 = rnd(1, sm - 1), R3 = sm - R1, k = pick([1, 2, 3]), R2 = k * R1, R4 = k * R3, R5 = rnd(2, 9), Req = k * sm / (1 + k);
+		return NQ(`電橋 R1 = ${R1} Ω、R2 = ${R2} Ω、R3 = ${R3} Ω、R4 = ${R4} Ω（R1 和 R4 是對邊），中間接 ${R5} Ω，A、B 兩端的總電阻是多少？`, Req, 'Ω', [Req + R5, (R1 + R2 + R3 + R4) / 2, par(R1 + R2, R3 + R4)], `先檢查：R1 × R4 = ${R1 * R4}，R2 × R3 = ${R2 * R3}，平衡，中間的 ${R5} Ω 可以拿掉。(${R1} + ${R3}) 並 (${R2} + ${R4}) = ${sm} × ${k * sm} ÷ ${sm + k * sm} = ${fmt(Req)} Ω。`); },
+	() => Q('惠斯登電橋平衡時，下列何者正確？', '檢流計的電流為 0', ['檢流計的電流最大', '四個電阻一定相等', '中間的電阻必須是 0 Ω'], '平衡時 C、D 兩點等電位，中間支路沒有電流，所以檢流計是 0。'),
+	() => { const [R1, R2, R3, Rx] = bridgeNums();
+		return NQ(`用電橋量未知電阻：平衡時 R1 = ${R1} Ω、R2 = ${R2} Ω、R3 = ${R3} Ω，未知電阻 Rx 放在 R4 的位置，Rx 是多少？`, Rx, 'Ω', [R1 * R2 / R3, R1 * R3 / R2, R2 + R3 - R1], `Rx = R2 × R3 ÷ R1 = ${R2} × ${R3} ÷ ${R1} = ${fmt(Rx)} Ω。`); }
+];
+const U6 = [
+	() => { const R = pick([3, 6, 9, 12, 15, 24, 30, 60]);
+		return NQ(`Δ 接的三個電阻都是 ${R} Ω，換成 Y 接後每個電阻是多少？`, R / 3, 'Ω', [R * 3, R, R / 2], `三個相等時 R<sub>Y</sub> = R<sub>Δ</sub> ÷ 3 = ${R} ÷ 3 = ${fmt(R / 3)} Ω。`); },
+	() => { const R = pick([1, 2, 3, 4, 5, 10, 20]);
+		return NQ(`Y 接的三個電阻都是 ${R} Ω，換成 Δ 接後每個電阻是多少？`, R * 3, 'Ω', [R / 3, R, R * 2], `三個相等時 R<sub>Δ</sub> = 3 × R<sub>Y</sub> = 3 × ${R} = ${R * 3} Ω。`); },
+	() => { const V = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 30];
+		for (let k = 0; k < 400; k++) {
+			const ab = pick(V), bc = pick(V), ca = pick(V), sum = ab + bc + ca, w = pick(['a', 'b', 'c']);
+			const num = { a: [ab, ca], b: [ab, bc], c: [bc, ca] }[w], ans = num[0] * num[1] / sum;
+			if (!nice(ans) || ans < 0.5) continue;
+			const wrong = { a: ab * bc, b: bc * ca, c: ab * ca }[w] / sum, lab = { a: ['ab', 'ca'], b: ['ab', 'bc'], c: ['bc', 'ca'] }[w];
+			return NQ(`Δ 接 R<sub>ab</sub> = ${ab} Ω、R<sub>bc</sub> = ${bc} Ω、R<sub>ca</sub> = ${ca} Ω，換成 Y 接後 R<sub>${w}</sub> 是多少？`, ans, 'Ω', [wrong, sum / 3, num[0] * num[1]], `Δ→Y：鄰邊相乘 ÷ 三邊和。R<sub>${w}</sub> 碰到的是 R<sub>${lab[0]}</sub> 和 R<sub>${lab[1]}</sub>：${num[0]} × ${num[1]} ÷ ${sum} = ${fmt(ans)} Ω。`);
+		}
+		return U6[0](); },
+	() => { for (let k = 0; k < 400; k++) {
+			const a = rnd(1, 6), b = rnd(1, 6), c = rnd(1, 6), P = a * b + b * c + c * a, w = pick(['ab', 'bc', 'ca']);
+			const opp = { ab: c, bc: a, ca: b }[w], oppName = { ab: 'c', bc: 'a', ca: 'b' }[w], ans = P / opp;
+			if (!nice(ans)) continue;
+			const others = { ab: [a, b], bc: [b, c], ca: [c, a] }[w];
+			return NQ(`Y 接 R<sub>a</sub> = ${a} Ω、R<sub>b</sub> = ${b} Ω、R<sub>c</sub> = ${c} Ω，換成 Δ 接後 R<sub>${w}</sub> 是多少？`, ans, 'Ω', [P / others[0], P / others[1], others[0] + others[1]], `Y→Δ：兩兩相乘相加 = ${a}×${b} + ${b}×${c} + ${c}×${a} = ${P}，再除以對面的 R<sub>${oppName}</sub> = ${opp}：${P} ÷ ${opp} = ${fmt(ans)} Ω。`);
+		}
+		return U6[1](); },
+	() => { const w = pick(['ab', 'bc', 'ca']), opp = { ab: 'c', bc: 'a', ca: 'b' }[w], rest = ['a', 'b', 'c'].filter(x => x !== opp);
+		return Q(`Y→Δ 求 R${w} 時，分母要除以哪一個？`, `R${opp}`, [`R${rest[0]}`, `R${rest[1]}`, 'Ra + Rb + Rc'], `R${w} 連著 ${w[0]}、${w[1]} 兩點，分母用「對面」沒碰到 ${w[0]}、${w[1]} 的 R${opp}。`); }
+];
+const BANK = [U1, U2, U3, U4, U5, U6];
+
+/* ---------- 挑戰引擎 ---------- */
+function quiz(root, { gens, count, lives, onDone }) {
+	const box = h('div', { class: 'quiz' });
+	root.append(box);
+	let order, idx, right, combo, best, hp, gained, res, cur;
+	function reset() {
+		order = []; while (order.length < count) order.push(...shuffle(gens)); order = order.slice(0, count);
+		idx = 0; right = 0; combo = 0; best = 0; hp = lives || 0; gained = 0; res = [];
+		ask();
+	}
+	function head() {
+		const pips = h('div', { class: 'pips', 'aria-label': `第 ${idx + 1} 題，共 ${count} 題` });
+		for (let i = 0; i < count; i++) pips.append(h('span', { class: 'pip' + (res[i] === true ? ' ok' : res[i] === false ? ' no' : i === idx ? ' now' : '') }));
+		const hd = h('div', { class: 'qhead' }, pips, h('span', null, `第 ${Math.min(idx + 1, count)} / ${count} 題`));
+		if (lives) { const hs = h('span', { class: 'hearts', 'aria-label': `剩 ${hp} 顆愛心` }); for (let i = 0; i < lives; i++) hs.append(h('span', { class: i < hp ? '' : 'lost' }, '♥')); hd.append(hs); }
+		if (combo >= 2) hd.append(h('span', { class: 'combo' }, `連擊 ×${combo}`));
+		return hd;
+	}
+	function ask() {
+		cur = order[idx]();
+		box.replaceChildren(head(), h('p', { class: 'qtext', html: cur.q }));
+		const grid = h('div', { class: 'opts' });
+		cur.opts.forEach(o => { const b = h('button', { class: 'btn opt', type: 'button' }, o); b.dataset.v = o; b.addEventListener('click', () => answer(b, o, grid)); grid.append(b); });
+		box.append(grid);
+	}
+	function answer(btn, o, grid) {
+		const ok = o === cur.correct;
+		grid.querySelectorAll('button').forEach(b => { b.disabled = true; if (b.dataset.v === cur.correct) b.classList.add('right'); });
+		if (!ok) btn.classList.add('wrong');
+		res[idx] = ok;
+		const fb = h('div', { class: 'feedback ' + (ok ? 'good' : 'bad'), 'aria-live': 'polite' });
+		if (ok) {
+			right++; combo++; best = Math.max(best, combo);
+			const gain = 10 + (combo >= 2 ? (combo - 1) * 2 : 0);
+			gained += gain; S.xp += gain; save(); renderStats(); sfx.good();
+			const r = btn.getBoundingClientRect(); confetti(r.left + r.width / 2, r.top + r.height / 2, 28);
+			fb.append(h('div', { class: 'verdict' }, combo >= 2 ? `答對！連擊 ×${combo}，+${gain} XP` : `答對！+${gain} XP`));
+		} else {
+			combo = 0; if (lives) hp--; sfx.bad();
+			fb.append(h('div', { class: 'verdict' }, '差一點！'), h('div', null, '正確答案：', h('b', null, cur.correct)));
+		}
+		fb.append(h('div', { html: cur.ex }));
+		const last = idx + 1 >= count || (lives && hp <= 0);
+		const nb = h('button', { class: 'btn primary', type: 'button' }, last ? '看結果' : '下一題');
+		nb.addEventListener('click', () => { if (last) finish(); else { idx++; ask(); box.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' }); } });
+		fb.append(h('div', { class: 'row' }, nb));
+		box.replaceChild(head(), box.firstChild);
+		box.append(fb);
+		nb.focus({ preventScroll: true });
+	}
+	function finish() {
+		const stars = lives ? 0 : right >= count ? 3 : right >= count - 1 ? 2 : right >= Math.ceil(count * 0.6) ? 1 : 0;
+		const r = { right, count, stars, best, gained, hp };
+		box.replaceChildren(h('div', { class: 'result' }, ...onDone(r, reset)));
+	}
+	reset();
+}
+
+/* ---------- 關卡資料 ---------- */
+const LEVELS = [
+	{ n: 1, band: '棕', color: 'var(--b1)', text: '#fff', title: '燈泡派對', topic: '串聯與並聯', blurb: '串聯電流相同、並聯電壓相同。拉滑桿看哪顆燈泡最亮。', sim: sim1,
+		tips: [['串聯：電流只有一條路', '電流處處相同，電阻越大分到越多電壓。', 'R<sub>T</sub> = R<sub>1</sub> + R<sub>2</sub> + …　V<sub>1</sub> = E × R<sub>1</sub> ÷ R<sub>T</sub>'],
+			['並聯：電壓都一樣', '總電阻一定比最小的那個還小；兩個並聯用「積 ÷ 和」。', '1/R<sub>T</sub> = 1/R<sub>1</sub> + 1/R<sub>2</sub> + …'],
+			['分流口訣', '分子乘「另一個」電阻。', 'I<sub>1</sub> = I × R<sub>2</sub> ÷ (R<sub>1</sub> + R<sub>2</sub>)'],
+			['陷阱：瓦數小反而亮', '串聯時電流一樣，P = I²R，電阻大的較亮；瓦數小的燈泡電阻比較大。', 'R = V² ÷ P', true]] },
+	{ n: 2, band: '紅', color: 'var(--b2)', text: '#fff', title: '電源變身術', topic: '電壓源與電流源', blurb: '電壓源和電流源互相變身，接上同一個負載結果一模一樣。', sim: sim2,
+		tips: [['實際電壓源 = E 串 r', '內阻會吃掉一點電壓，所以端電壓比 E 小。', 'V = E − I·r'],
+			['實際電流源 = I 並 r', '理想電壓源內阻 0，理想電流源內阻無限大。', '短路電流 = E ÷ r'],
+			['互換口訣', 'r 數值不變，串聯改並聯；電流源箭頭指向原本的 + 極。', 'I = E ÷ r　E = I × r'],
+			['陷阱', '不同電壓的理想電壓源不能並聯；不同電流的理想電流源不能串聯。', '', true]] },
+	{ n: 3, band: '橙', color: 'var(--b3)', text: '#1b2130', title: '電位雲霄飛車', topic: 'KVL 克希荷夫電壓定律', blurb: '坐上電位車繞迴路一圈，升降加起來剛好回到 0 V。', sim: sim3,
+		tips: [['KVL 一句話', '繞封閉迴路一圈，電壓升的總和 = 電壓降的總和。', 'ΣE = ΣIR'],
+			['升還是降？', '經過電源 − 到 + 是升；順著電流經過電阻是降 I·R。', ''],
+			['電位', '接地點 0 V，兩點的電位差 = 前面減後面。', 'V<sub>ab</sub> = V<sub>a</sub> − V<sub>b</sub>'],
+			['陷阱：I 是負的', '不是算錯！大小是對的，只是實際方向和你假設的相反。', '', true]] },
+	{ n: 4, band: '黃', color: 'var(--b4)', text: '#1b2130', title: '節點交通警察', topic: 'KCL 克希荷夫電流定律', blurb: '流進多少就要流出多少，指揮電流讓節點不塞車。', sim: sim4,
+		tips: [['KCL 一句話', '流進節點的電流總和 = 流出的電流總和（電荷守恆）。', 'ΣI<sub>入</sub> = ΣI<sub>出</sub>'],
+			['節點怎麼數', '用導線直接連在一起的點，全部算同一個節點。', ''],
+			['和並聯的關係', '並聯總電流 = 各支路電流相加，這就是 KCL。', 'I<sub>T</sub> = I<sub>1</sub> + I<sub>2</sub> + …'],
+			['陷阱：負值', '假設流出卻算出負的，代表它其實是流進。', '', true]] },
+	{ n: 5, band: '綠', color: 'var(--b5)', text: '#fff', title: '電橋開鎖', topic: '惠斯登電橋', blurb: '轉動 R4 讓檢流計指針歸零，鎖就打開。', sim: sim5,
+		tips: [['平衡條件', '對邊乘積相等（R1、R4 一組，R2、R3 一組）。', 'R<sub>1</sub> × R<sub>4</sub> = R<sub>2</sub> × R<sub>3</sub>'],
+			['平衡的好處', 'C、D 等電位，檢流計沒電流，中間那條拿掉或短路都可以。', ''],
+			['量未知電阻', 'Rx 放在 R4 的位置。', 'R<sub>x</sub> = R<sub>2</sub> × R<sub>3</sub> ÷ R<sub>1</sub>'],
+			['陷阱', '不平衡時中間不能拿掉，要改用 Y–Δ 互換。', '', true]] },
+	{ n: 6, band: '藍', color: 'var(--b6)', text: '#fff', title: 'Y–Δ 變身工坊', topic: 'Y–Δ 互換', blurb: '三角形和 Y 字互相變身，找到「對面」那一個。', sim: sim6,
+		tips: [['Δ → Y', '鄰邊相乘 ÷ 三邊和。', 'R<sub>a</sub> = R<sub>ab</sub>R<sub>ca</sub> ÷ (R<sub>ab</sub> + R<sub>bc</sub> + R<sub>ca</sub>)'],
+			['Y → Δ', '兩兩相乘相加 ÷ 對面那一個。', 'R<sub>ab</sub> = (R<sub>a</sub>R<sub>b</sub> + R<sub>b</sub>R<sub>c</sub> + R<sub>c</sub>R<sub>a</sub>) ÷ R<sub>c</sub>'],
+			['三個相等最快', '', 'R<sub>Y</sub> = R<sub>Δ</sub> ÷ 3　R<sub>Δ</sub> = 3R<sub>Y</sub>'],
+			['什麼是「對面」', 'R<sub>ab</sub> 連著 a、b，對面就是沒碰到 a、b 的 R<sub>c</sub>。', '', true]] }
+];
+const BOSS = { n: 7, band: '紫', color: 'var(--b7)', text: '#fff', title: '總複習 Boss 戰', topic: '六關混合題', blurb: '10 題混合題、3 顆愛心，看你能拿到什麼評等。' };
+
+/* ---------- 畫面 ---------- */
+const view = document.getElementById('view');
+let route = null;
+function setLv(L) {
+	const root = document.documentElement.style;
+	root.setProperty('--lv', L ? L.color : 'var(--ink)');
+	root.setProperty('--lv-text', L ? L.text : '#fff');
+}
+function clearView() { flows = []; rideFn = null; view.replaceChildren(); window.scrollTo(0, 0); }
+function clearedRun() { let k = 0; while (k < 6 && (S.stars[k + 1] || 0) > 0) k++; return k; }
+function resistorBadge(L, w, hgt) {
+	return s('svg', { viewBox: '0 0 96 40', class: 'badge', width: w || 96, height: hgt || 40, 'aria-hidden': 'true' },
+		s('line', { x1: 0, y1: 20, x2: 18, y2: 20, stroke: '#1b2130', 'stroke-width': 3 }), s('line', { x1: 78, y1: 20, x2: 96, y2: 20, stroke: '#1b2130', 'stroke-width': 3 }),
+		s('rect', { x: 18, y: 6, width: 60, height: 28, rx: 8, fill: '#fff', stroke: '#1b2130', 'stroke-width': 3 }),
+		s('rect', { x: 30, y: 6, width: 9, height: 28, fill: L.color }), s('rect', { x: 46, y: 6, width: 9, height: 28, fill: L.color, opacity: .55 }));
+}
+function traceSVG() {
+	const k = clearedRun(), full = k === 6 && S.bossWin;
+	const svg = s('svg', { viewBox: '0 0 1000 160', class: 'trace', role: 'img', 'aria-label': `電流進度：已經通過 ${k} 關${full ? '，Boss 也打倒了，燈泡亮了' : ''}` });
+	const xs = [150, 270, 390, 510, 630, 750], bx = 880, top = 50, bot = 132;
+	svg.append(s('path', { d: `M50 82 L50 ${top} L950 ${top} L950 ${bot} L50 ${bot} L50 98`, class: 'wire' }));
+	let litD = null;
+	if (full) litD = `M50 82 L50 ${top} L950 ${top} L950 ${bot} L50 ${bot} L50 98`;
+	else if (k > 0) litD = `M50 82 L50 ${top} L${k === 6 ? bx - 22 : xs[k - 1] + 30} ${top}`;
+	if (litD) svg.append(s('path', { d: litD, class: 'lit' }));
+	svg.append(s('line', { x1: 32, y1: 82, x2: 68, y2: 82, class: 'plate' }), s('line', { x1: 41, y1: 98, x2: 59, y2: 98, class: 'plate', 'stroke-width': 6 }), s('text', { x: 18, y: 86, class: 'pm' }, '+'));
+	LEVELS.forEach((L, i) => {
+		const st = S.stars[L.n] || 0, x = xs[i];
+		const g = s('g', { class: 'rbtn', tabindex: '0', role: 'button', 'aria-label': `第 ${L.n} 關 ${L.title}` },
+			s('rect', { x: x - 32, y: top - 13, width: 64, height: 26, rx: 7, fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 3, class: 'body' }),
+			s('rect', { x: x - 14, y: top - 13, width: 9, height: 26, fill: L.color }), s('rect', { x: x + 2, y: top - 13, width: 9, height: 26, fill: L.color, opacity: .55 }),
+			s('text', { x, y: 92, class: 'lbl', 'text-anchor': 'middle' }, `第 ${L.n} 關`),
+			s('text', { x, y: 114, 'text-anchor': 'middle', style: `font-size:17px;letter-spacing:2px;fill:${st ? 'var(--b4)' : 'var(--grid)'};stroke:var(--ink);stroke-width:.8` }, '★'.repeat(Math.max(st, 0)) + '☆'.repeat(3 - st)));
+		g.addEventListener('click', () => go('level-' + L.n));
+		g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('level-' + L.n); } });
+		svg.append(g);
+	});
+	const bg = s('g', { class: 'rbtn', tabindex: '0', role: 'button', 'aria-label': 'Boss 戰' });
+	if (full) bg.append(s('circle', { cx: bx, cy: top, r: 40, class: 'halo', style: 'opacity:.5' }));
+	bg.append(s('circle', { cx: bx, cy: top, r: 22, fill: full ? 'var(--glow)' : 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 3, class: 'body' }),
+		s('path', { d: `M${bx - 10} ${top + 6} l3.3 -10 l3.3 10 l3.3 -10 l3.3 10 l3.3 -10`, class: 'filament' }),
+		s('text', { x: bx, y: 92, class: 'lbl', 'text-anchor': 'middle' }, 'Boss'),
+		s('text', { x: bx, y: 114, class: 'val', 'text-anchor': 'middle' }, full ? '燈亮了！' : '等你點亮'));
+	bg.addEventListener('click', () => go('boss'));
+	bg.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('boss'); } });
+	svg.append(bg);
+	return svg;
+}
+function showMap() {
+	setLv(null); clearView();
+	const k = clearedRun();
+	view.append(
+		h('section', { class: 'hero' },
+			h('p', { class: 'eyebrow' }, '基本電學 第三章　串並聯電路'),
+			h('h1', { html: '電路<span class="zap">闖關</span>' }),
+			h('p', { class: 'lede' }, '每過一關，電流就往前流一格。六關都拿到星星、再打倒 Boss，最右邊的燈泡就會亮起來。'),
+			h('div', { class: 'trace-box' }, traceSVG(), h('p', { class: 'trace-note' }, k === 0 ? '從第 1 關開始，點電阻就能進入關卡。' : k < 6 ? `電流已經流過 ${k} 關，下一站是第 ${k + 1} 關。` : S.bossWin ? '全部通關！燈泡亮了。' : '六關全破！去打 Boss 把燈點亮。'))
+		)
+	);
+	const grid = h('div', { class: 'levels' });
+	[...LEVELS, BOSS].forEach(L => {
+		const isBoss = L === BOSS, st = S.stars[L.n] || 0;
+		grid.append(h('article', { class: 'lcard', style: `--lv:${L.color};--lv-text:${L.text}` },
+			h('div', { class: 'band', 'aria-hidden': 'true' }),
+			h('div', { class: 'lbody' },
+				h('p', { class: 'lmeta' }, `${isBoss ? '最終關' : '第 ' + L.n + ' 關'} · 色碼 ${L.n} ${L.band}`),
+				h('h3', null, L.title),
+				h('p', { class: 'ltopic' }, L.topic),
+				h('p', { class: 'lblurb' }, L.blurb),
+				h('div', { class: 'lfoot' },
+					isBoss ? h('span', { class: 'lmeta' }, S.bossWin ? `已打倒，最佳 ${S.bossBest} / 10` : `最佳 ${S.bossBest} / 10`) : starRow(st),
+					h('button', { class: 'btn primary', type: 'button', onclick: () => go(isBoss ? 'boss' : 'level-' + L.n) }, (isBoss ? S.bossBest : st) ? '再玩一次' : '開始')))));
+	});
+	view.append(grid);
+	const resetBtn = h('button', { class: 'btn small', type: 'button' }, '重設進度');
+	let armed = false;
+	resetBtn.addEventListener('click', () => {
+		if (!armed) { armed = true; resetBtn.textContent = '再按一次確認清除'; setTimeout(() => { armed = false; resetBtn.textContent = '重設進度'; }, 4000); return; }
+		const snd = S.sound; S = fresh(); S.sound = snd; save(); renderStats(); showMap();
+	});
+	view.append(h('div', { class: 'mapfoot' }, h('span', null, '進度只存在這台裝置的瀏覽器裡。'), resetBtn));
+}
+function blockTitle(num, title, sub) { return h('h3', null, h('span', { class: 'num' }, num), title, sub ? h('small', null, sub) : null); }
+function showLevel(n) {
+	const L = LEVELS[n - 1];
+	setLv(L); clearView();
+	view.append(h('div', { class: 'lhead' },
+		h('button', { class: 'btn small', type: 'button', onclick: () => go('map') }, '← 回地圖'),
+		resistorBadge(L),
+		h('div', null, h('p', { class: 'lmeta' }, `第 ${n} 關 · ${L.topic}`), h('h2', null, L.title))));
+	const tips = h('div', { class: 'tips' });
+	L.tips.forEach(([t, p, f, trap]) => tips.append(h('div', { class: 'tip' + (trap ? ' trap' : '') }, h('h4', null, t), p ? h('p', { html: p }) : null, f ? h('span', { class: 'f', html: f }) : null)));
+	view.append(h('section', { class: 'block' }, blockTitle('1', '秘笈', '先花兩分鐘看完'), tips));
+	const lab = h('section', { class: 'block' }, blockTitle('2', '實驗台', '拉滑桿，電流的光點會跟著變快變慢'));
+	view.append(lab);
+	L.sim(lab);
+	const qs = h('section', { class: 'block' }, blockTitle('3', '挑戰', '5 題：答對 3 題 1 星、4 題 2 星、全對 3 星'));
+	view.append(qs);
+	quiz(qs, {
+		gens: BANK[n - 1], count: 5,
+		onDone(r, again) {
+			const before = S.stars[n] || 0;
+			if (r.stars > before) { S.stars[n] = r.stars; save(); renderStats(); }
+			if (r.stars > 0) { sfx.win(); confetti(innerWidth / 2, innerHeight / 3, 90); }
+			const nextName = n < 6 ? 'level-' + (n + 1) : 'boss';
+			return [
+				h('div', { class: 'big' }, `${r.right} / ${r.count}`),
+				starRow(r.stars),
+				h('p', null, r.stars ? `${r.stars > before ? '新紀錄！' : ''}這回合拿到 ${r.gained} XP，最高連擊 ${r.best}。` : `這回合拿到 ${r.gained} XP。答對 3 題就有星星，看完上面的解說再試一次！`),
+				h('div', { class: 'acts' },
+					h('button', { class: 'btn', type: 'button', onclick: again }, '再挑戰一次'),
+					h('button', { class: 'btn primary', type: 'button', onclick: () => go(nextName) }, n < 6 ? '下一關' : '去打 Boss'))
+			];
+		}
+	});
+	view.append(h('nav', { class: 'lnav', 'aria-label': '關卡切換' },
+		n > 1 ? h('button', { class: 'btn', type: 'button', onclick: () => go('level-' + (n - 1)) }, `← 第 ${n - 1} 關 ${LEVELS[n - 2].title}`) : h('span'),
+		n < 6 ? h('button', { class: 'btn', type: 'button', onclick: () => go('level-' + (n + 1)) }, `第 ${n + 1} 關 ${LEVELS[n].title} →`) : h('button', { class: 'btn', type: 'button', onclick: () => go('boss') }, 'Boss 戰 →')));
+}
+function showBoss() {
+	setLv(BOSS); clearView();
+	view.append(h('div', { class: 'lhead' },
+		h('button', { class: 'btn small', type: 'button', onclick: () => go('map') }, '← 回地圖'),
+		resistorBadge(BOSS),
+		h('div', null, h('p', { class: 'lmeta' }, '最終關 · 六關混合題'), h('h2', null, BOSS.title))));
+	const qs = h('section', { class: 'block' }, blockTitle('!', '開打', '10 題、3 顆愛心，答錯扣一顆，愛心用完就結束'));
+	view.append(qs);
+	const gens = BANK.flat();
+	quiz(qs, {
+		gens, count: 10, lives: 3,
+		onDone(r, again) {
+			const win = r.hp > 0, rank = r.right === 10 ? 'S' : r.right >= 8 ? 'A' : r.right >= 6 ? 'B' : 'C';
+			if (r.right > S.bossBest) S.bossBest = r.right;
+			if (win && !S.bossWin) S.bossWin = true;
+			save(); renderStats();
+			if (win) { sfx.win(); confetti(innerWidth / 2, innerHeight / 3, 140); }
+			return [
+				h('div', { class: 'rank' }, rank),
+				h('div', { class: 'big' }, `${r.right} / ${r.count}`),
+				h('p', null, win ? `打倒 Boss！剩 ${r.hp} 顆愛心，這場拿到 ${r.gained} XP。回地圖看看燈泡。` : `愛心用完了，答對 ${r.right} 題。錯的題目回到那一關的秘笈複習一下再來！`),
+				h('div', { class: 'acts' }, h('button', { class: 'btn', type: 'button', onclick: again }, '再打一次'), h('button', { class: 'btn primary', type: 'button', onclick: () => go('map') }, '回地圖'))
+			];
+		}
+	});
+}
+function render(name) {
+	const m = /^level-([1-6])$/.exec(name || '');
+	route = m ? name : name === 'boss' ? 'boss' : 'map';
+	if (m) showLevel(+m[1]); else if (route === 'boss') showBoss(); else showMap();
+}
+function go(name) {
+	sfx.click();
+	if (location.hash.slice(1) !== name) { try { location.hash = name; } catch (e) { /* 忽略 */ } }
+	if (route !== name) render(name);
+}
+window.addEventListener('hashchange', () => { const n = location.hash.slice(1) || 'map'; if (n !== route) render(n); });
+document.getElementById('brand').addEventListener('click', () => go('map'));
+document.getElementById('sound-btn').addEventListener('click', () => { S.sound = !S.sound; save(); renderStats(); sfx.click(); });
+
+window.__ch3 = { BANK, calc1, fmt };
+function start(data) { renderStats(); render((data && data.route) || location.hash.slice(1) || 'map'); }
+if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ route }));
+if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
+else start((window.claude && window.claude.hot && window.claude.hot.data) || {});
+})();
+</script>
+</body>
+</html>

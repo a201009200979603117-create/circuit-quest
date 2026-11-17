@@ -223,6 +223,29 @@ svg text { font-family: var(--font-body); }
 .trace .lit { stroke: var(--flow); stroke-width: 7; fill: none; stroke-dasharray: 0.1 16; stroke-linecap: round; animation: flow .7s linear infinite; }
 @keyframes flow { to { stroke-dashoffset: -16.1; } }
 
+/* 動畫講解播放器 */
+.player { background: var(--card); border: 2.5px solid var(--ink); border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); overflow: hidden; }
+.vwrap { position: relative; background: #fbfcfe; }
+.vstage { display: block; width: 100%; height: auto; }
+.vbig { position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 10px; font: inherit; font-weight: 900; font-size: 18px; background: var(--lv); color: var(--lv-text); border: 2.5px solid var(--ink); border-radius: 999px; padding: 10px 22px 10px 16px; box-shadow: 4px 4px 0 var(--ink); cursor: pointer; white-space: nowrap; }
+.vbig[hidden] { display: none; }
+.vbig:active { box-shadow: 0 0 0 var(--ink); }
+.vcap { min-height: 3.4em; padding: 10px 16px; font-size: 18px; font-weight: 700; line-height: 1.5; background: var(--ink); color: #fff; }
+.vctrl { display: flex; align-items: center; gap: 8px; padding: 10px 12px; flex-wrap: wrap; border-top: 2.5px solid var(--ink); }
+.vbar { flex: 1 1 200px; display: flex; gap: 3px; height: 14px; }
+.vseg { position: relative; flex-basis: 0; background: var(--grid); border: 0; border-radius: 4px; padding: 0; cursor: pointer; overflow: hidden; min-width: 0; }
+.vseg i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--lv); }
+.vtime { font-family: var(--font-lcd); font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vt { font-size: 20px; font-weight: 700; fill: var(--ink); }
+.vt.big { font-size: 36px; font-family: var(--font-display); }
+.vt.sm { font-size: 15px; font-weight: 500; fill: var(--muted); }
+.vt.f16 { font-size: 16px; }
+.vt.hot { fill: var(--b2); } .vt.good { fill: var(--good); } .vt.blue { fill: var(--b6); }
+.vcard { fill: var(--card); stroke: var(--ink); stroke-width: 2.5; }
+.uline { fill: none; stroke: var(--lv); stroke-width: 7; stroke-linecap: round; }
+.nodehl { fill: none; stroke-width: 16; stroke-linecap: round; opacity: .35; }
+.tint { fill: var(--b6); opacity: .14; }
+
 @media (prefers-reduced-motion: reduce) {
 	*, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -350,6 +373,7 @@ function drawConfetti(dt) {
 /* ---------- 電流動畫 ---------- */
 let flows = [];
 let rideFn = null;
+let anims = [];
 function flowSpeed(I) { if (!isFinite(I) || Math.abs(I) < 1e-9) return 0; return Math.sign(I) * Math.min(260, 14 + Math.abs(I) * 16); }
 function setFlow(f, I) { f.v = flowSpeed(I); f.el.style.opacity = f.v === 0 ? 0 : 1; }
 function addFlow(layer, d, I) { const el = s('path', { d, class: 'dots' }); layer.append(el); const f = { el, v: 0, off: Math.random() * 18 }; setFlow(f, I); flows.push(f); return f; }
@@ -358,6 +382,7 @@ function frame(t) {
 	const dt = Math.min(.05, Math.max(0, (t - lastT) / 1000)); lastT = t;
 	if (!reduceMotion) for (const f of flows) { f.off = (f.off - f.v * dt) % 1800; f.el.style.strokeDashoffset = f.off; }
 	if (rideFn) rideFn(t);
+	for (const a of anims) a(dt);
 	drawConfetti(dt);
 	requestAnimationFrame(frame);
 }
@@ -1084,6 +1109,481 @@ function quiz(root, { gens, count, lives, onDone }) {
 	reset();
 }
 
+/* ---------- 動畫講解：工具 ---------- */
+const ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+const seg01 = (p, a, b) => Math.max(0, Math.min(1, (p - a) / (b - a)));
+const mmss = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+const grp = (...kids) => s('g', null, ...kids);
+const W = (d, cls) => s('path', { d, class: cls || 'wire' });
+const VT = (x, y, txt, cls, anchor) => s('text', { x, y, class: 'vt' + (cls ? ' ' + cls : ''), 'text-anchor': anchor || 'start' }, txt || '');
+const rb = (cx, cy, vert, cls) => s('rect', vert ? { x: cx - 9, y: cy - 22, width: 18, height: 44, rx: 3, class: 'res' + (cls ? ' ' + cls : '') } : { x: cx - 22, y: cy - 9, width: 44, height: 18, rx: 3, class: 'res' + (cls ? ' ' + cls : '') });
+const bat = (x, y) => { const g = s('g'); batteryV(g, x, y); return g; };
+const csrcG = (x, y) => grp(s('circle', { cx: x, cy: y, r: 20, class: 'csrc' }), s('path', { d: `M${x} ${y + 12} L${x} ${y - 12} M${x - 7} ${y - 5} L${x} ${y - 13} L${x + 7} ${y - 5}`, class: 'arrow' }));
+const dot = (x, y, r) => s('circle', { cx: x, cy: y, r: r || 4.5, fill: 'var(--ink)' });
+const term = (x, y) => s('circle', { cx: x, cy: y, r: 4, class: 'csrc' });
+
+function kitFor(root) {
+	const back = s('g'), mid = s('g'), front = s('g');
+	root.append(back, mid, front);
+	const tr = [];
+	const k = {
+		trace(el, a, b, top) { el.setAttribute('pathLength', 1); el.style.strokeDasharray = '1 1'; el.style.strokeDashoffset = 1; (top ? front : back).append(el); tr.push(p => { el.style.strokeDashoffset = 1 - ease(seg01(p, a, b)); }); return el; },
+		fade(el, a, b, c, d) { el.style.opacity = 0; front.append(el); tr.push(p => { let o = ease(seg01(p, a, b)); if (c != null) o *= 1 - ease(seg01(p, c, d)); el.style.opacity = o; }); return el; },
+		type(el, text, a, b) { const ch = [...text]; front.append(el); tr.push(p => { el.textContent = ch.slice(0, Math.round(ch.length * seg01(p, a, b))).join(''); }); return el; },
+		flow(d, I, a, b) { const el = s('path', { d, class: 'dots' }); el.style.opacity = 0; mid.append(el); tr.push((p, t) => { el.style.opacity = p >= a && (b == null || p < b) ? 1 : 0; el.style.strokeDashoffset = reduceMotion ? 0 : (-t * flowSpeed(I)) % 1800; }); return el; },
+		put(el) { front.append(el); return el; },
+		fn(f) { tr.push(f); }
+	};
+	return { k, update: (p, t) => tr.forEach(f => f(p, t)) };
+}
+function titleScene(n, title, sub, cap, d) {
+	return { d: d || 8, cap, build(k) {
+		k.fade(VT(320, 118, `第 ${n} 關 · 動畫講解`, 'sm', 'middle'), 0, .12);
+		k.fade(VT(320, 178, title, 'big', 'middle'), .05, .25);
+		k.trace(W('M200 204 H440', 'uline'), .2, .45, true);
+		k.fade(VT(320, 244, sub, '', 'middle'), .3, .5);
+	} };
+}
+function cardsScene(title, items, cap, d) {
+	return { d: d || 9, cap, build(k) {
+		k.fade(VT(320, 54, title, 'big', 'middle'), 0, .12);
+		items.forEach((t, i) => { const y = 82 + i * 66; k.fade(grp(s('rect', { x: 70, y, width: 500, height: 50, rx: 12, class: 'vcard' }), VT(320, y + 32, t, '', 'middle')), .12 + i * .14, .24 + i * .14); });
+	} };
+}
+
+/* ---------- 第 1 關：串聯與並聯 ---------- */
+const SER = 'M90 182 V110 H550 V270 H90 V198';
+function l1Series(k, anim) {
+	k.trace(W(SER), 0, anim ? .3 : .01);
+	k.fade(grp(bat(90, 190), VT(114, 196, '12 V', 'f16')), anim ? .25 : 0, anim ? .35 : .01);
+	[[210, '2 Ω'], [330, '4 Ω'], [450, '6 Ω']].forEach(([x, lab], i) => k.fade(grp(rb(x, 110), VT(x, 144, lab, 'f16', 'middle')), anim ? .3 + i * .05 : 0, anim ? .4 + i * .05 : .01));
+}
+const PARF = [['M90 182 V100 H250', 6], ['M250 100 H370', 3], ['M370 100 H490', 1], ['M250 100 V280', 3], ['M370 100 V280', 2], ['M490 100 V280', 1], ['M490 280 H370', 1], ['M370 280 H250', 3], ['M250 280 H90 V198', 6]];
+function l1Par(k, anim, flowAt) {
+	k.trace(W('M90 182 V100 H490'), 0, anim ? .2 : .01);
+	k.trace(W('M90 198 V280 H490'), 0, anim ? .2 : .01);
+	[250, 370, 490].forEach((x, i) => k.trace(W(`M${x} 100 V280`), anim ? .15 + i * .06 : 0, anim ? .27 + i * .06 : .01));
+	k.fade(grp(bat(90, 190), VT(114, 196, '12 V', 'f16')), 0, anim ? .3 : .01);
+	[[250, '4 Ω'], [370, '6 Ω'], [490, '12 Ω']].forEach(([x, lab]) => k.fade(grp(rb(x, 190, true), VT(x + 16, 196, lab, 'f16')), anim ? .35 : 0, anim ? .45 : .01));
+	if (flowAt != null) PARF.forEach(([d, I]) => k.flow(d, I, flowAt));
+}
+const LES1 = [
+	titleScene(1, '串聯 vs 並聯', '電流到底走幾條路？', [[0, '這一關只要記住一句話：串聯看電流，並聯看電壓。']]),
+	{ d: 14, cap: [[0, '串聯：所有元件排成一條路，電流只有一條路可以走。'], [.55, '所以每個電阻流過的電流都一樣。']], build(k) {
+		l1Series(k, true); k.flow(SER, 1, .45);
+		k.fade(VT(320, 210, '電流只有一條路，處處相同', 'hot', 'middle'), .55, .65);
+	} },
+	{ d: 16, cap: [[0, '總電阻直接相加：2 + 4 + 6 = 12 Ω。'], [.33, '電流 I = 12 ÷ 12 = 1 A。'], [.6, '每個電阻分到 I × R 的電壓，電阻越大分到越多：2 V、4 V、6 V，加起來剛好 12 V。']], build(k) {
+		l1Series(k, false); k.flow(SER, 1, 0);
+		k.type(VT(320, 186, '', '', 'middle'), '總電阻 = 2 + 4 + 6 = 12 Ω', .03, .25);
+		k.type(VT(320, 218, '', '', 'middle'), '電流 I = 12 ÷ 12 = 1 A', .33, .5);
+		[[210, '2 V'], [330, '4 V'], [450, '6 V']].forEach(([x, v], i) => k.fade(VT(x, 90, v, 'hot', 'middle'), .6 + i * .07, .68 + i * .07));
+		k.fade(VT(320, 252, '2 V + 4 V + 6 V = 12 V', 'good', 'middle'), .86, .94);
+	} },
+	{ d: 14, cap: [[0, '並聯：每個電阻都直接接在電源的兩端。'], [.5, '所以每個電阻的電壓都是 12 V，電流分成三條路走。']], build(k) {
+		l1Par(k, true, .5);
+		k.fade(VT(320, 326, '每個電阻兩端都是 12 V', 'hot', 'middle'), .55, .65);
+	} },
+	{ d: 16, cap: [[0, '各支路電流 = E ÷ R：12 ÷ 4 = 3 A、12 ÷ 6 = 2 A、12 ÷ 12 = 1 A。'], [.4, '總電流 3 + 2 + 1 = 6 A。'], [.62, '總電阻 = 12 ÷ 6 = 2 Ω，比最小的 4 Ω 還小。']], build(k) {
+		l1Par(k, false, 0);
+		[[250, '3 A'], [370, '2 A'], [490, '1 A']].forEach(([x, v], i) => k.fade(VT(x + 16, 150, v, 'hot'), .05 + i * .1, .13 + i * .1));
+		k.type(VT(320, 318, '', '', 'middle'), '總電流 = 3 + 2 + 1 = 6 A', .4, .55);
+		k.type(VT(320, 348, '', 'good', 'middle'), '總電阻 = 12 ÷ 6 = 2 Ω（比 4 Ω 還小）', .62, .82);
+	} },
+	{ d: 14, cap: [[0, '兩個電阻並聯時，8 A 的電流要怎麼分？'], [.4, '分流公式：分子乘「另一個」電阻。'], [.7, 'I1 = 6 A、I2 = 2 A：電阻小的分到大電流。']], build(k) {
+		k.trace(W('M60 180 H160'), 0, .1); k.trace(W('M160 180 V120 H400 V180'), .08, .25); k.trace(W('M160 180 V240 H400 V180'), .08, .25); k.trace(W('M400 180 H580'), .2, .3);
+		k.fade(grp(rb(280, 120), VT(280, 102, 'R1 = 2 Ω', 'f16', 'middle')), .25, .35);
+		k.fade(grp(rb(280, 240), VT(280, 274, 'R2 = 6 Ω', 'f16 hot', 'middle')), .25, .35);
+		k.fade(VT(66, 166, 'I = 8 A', 'f16'), .25, .35);
+		k.flow('M60 180 H160', 8, .35); k.flow('M160 180 V120 H400 V180', 6, .35); k.flow('M160 180 V240 H400 V180', 2, .35); k.flow('M400 180 H580', 8, .35);
+		k.type(VT(60, 318, ''), 'I1 = 8 × 6 ÷ (2 + 6) = 6 A　← 乘另一個 R2', .4, .62);
+		k.type(VT(60, 348, ''), 'I2 = 8 × 2 ÷ (2 + 6) = 2 A', .62, .78);
+		k.fade(VT(440, 132, 'I1 = 6 A', 'good'), .7, .78); k.fade(VT(440, 250, 'I2 = 2 A', 'good'), .8, .88);
+	} },
+	cardsScene('串聯 vs 並聯', ['串聯：電流處處相同，R 直接相加', '串聯：電阻越大，分到的電壓越大', '並聯：電壓都一樣，1/R 相加', '並聯：電阻越小，分到的電流越大'], [[0, '整理一下：串聯看電流、並聯看電壓。去實驗台自己拉拉看！']], 10)
+];
+
+/* ---------- 第 2 關：電壓源與電流源 ---------- */
+function l2Src(k, anim, X) {
+	const d = `M100 182 V110 H${X} V270 H100 V198`;
+	k.fade(grp(s('rect', { x: 60, y: 80, width: 170, height: 220, rx: 12, class: 'srcbox' }), VT(145, 70, '實際電壓源', 'sm', 'middle')), 0, anim ? .1 : .01);
+	k.trace(W(d), anim ? .05 : 0, anim ? .35 : .01);
+	k.fade(grp(bat(100, 190), VT(124, 196, 'E = 12 V', 'f16')), anim ? .25 : 0, anim ? .35 : .01);
+	k.fade(grp(rb(175, 110), VT(175, 96, 'r = 2 Ω', 'f16', 'middle')), anim ? .3 : 0, anim ? .4 : .01);
+	k.fade(grp(rb(X, 190, true), VT(X + 16, 196, '負載 4 Ω', 'f16')), anim ? .35 : 0, anim ? .45 : .01);
+	return d;
+}
+const LES2 = [
+	titleScene(2, '電源變身術', '電壓源 ⇄ 電流源', [[0, '真實的電池裡面藏了一個內阻 r。看它怎麼影響電壓，以及電壓源怎麼變成電流源。']]),
+	{ d: 14, cap: [[0, '真實的電池 = 理想電壓源 E 串聯一個內阻 r。'], [.5, '接上 4 Ω 負載：I = E ÷ (r + 負載) = 12 ÷ 6 = 2 A。']], build(k) {
+		const d = l2Src(k, true, 450); k.flow(d, 2, .5);
+		k.type(VT(320, 336, '', '', 'middle'), 'I = 12 ÷ (2 + 4) = 2 A', .55, .75);
+	} },
+	{ d: 14, cap: [[0, '內阻 r 會吃掉一部分電壓：I × r = 2 × 2 = 4 V。'], [.42, '負載只拿到剩下的 8 V。'], [.6, '這就是端電壓：V = E − I·r = 12 − 4 = 8 V。']], build(k) {
+		const d = l2Src(k, false, 400); k.flow(d, 2, 0);
+		const red = s('rect', { x: 562, y: 90, width: 36, height: 0, fill: 'var(--bad)' }), green = s('rect', { x: 562, y: 156.7, width: 36, height: 0, fill: 'var(--good)' });
+		k.put(grp(red, green, s('rect', { x: 562, y: 90, width: 36, height: 200, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5 })));
+		k.fn(p => { red.setAttribute('height', 66.7 * ease(seg01(p, .08, .3))); green.setAttribute('height', 133.3 * ease(seg01(p, .4, .55))); });
+		k.fade(VT(580, 80, 'E = 12 V', 'f16', 'middle'), 0, .06);
+		k.fade(VT(550, 128, '內阻吃掉 4 V', 'hot f16', 'end'), .2, .3);
+		k.fade(VT(550, 228, '負載拿到 8 V', 'good f16', 'end'), .45, .55);
+		k.type(VT(320, 336, '', '', 'middle'), 'V = E − I·r = 12 − 2 × 2 = 8 V', .6, .85);
+	} },
+	{ d: 14, cap: [[0, '開路：負載拿掉，電流沒有路可以走，I = 0。'], [.25, '沒有電流，內阻不會吃電壓，端電壓 = E = 12 V。'], [.45, '短路：兩端直接用導線接起來，只剩內阻擋電流。'], [.72, '短路電流 = E ÷ r = 6 A，電流很大，很危險。']], build(k) {
+		k.fade(VT(160, 92, '開路', 'big', 'middle'), 0, .08);
+		k.fade(grp(W('M70 182 V130 H250 V172'), W('M250 208 V250 H70 V198'), term(250, 176), term(250, 204), bat(70, 190), rb(140, 130), VT(94, 196, '12 V', 'f16'), VT(140, 116, '2 Ω', 'f16', 'middle')), 0, .1);
+		k.type(VT(160, 300, '', 'f16', 'middle'), 'I = 0（沒有通路）', .12, .25);
+		k.type(VT(160, 330, '', 'good f16', 'middle'), '端電壓 = E = 12 V', .25, .38);
+		k.fade(VT(480, 92, '短路', 'big', 'middle'), .45, .5);
+		k.trace(W('M390 182 V130 H570 V250 H390 V198'), .45, .6);
+		k.fade(grp(bat(390, 190), rb(460, 130), VT(414, 196, '12 V', 'f16'), VT(460, 116, '2 Ω', 'f16', 'middle')), .5, .6);
+		k.flow('M390 182 V130 H570 V250 H390 V198', 6, .62);
+		k.type(VT(480, 300, '', 'f16', 'middle'), 'I = E ÷ r = 12 ÷ 2', .62, .75);
+		k.type(VT(480, 330, '', 'hot f16', 'middle'), '= 6 A（很大！）', .75, .85);
+	} },
+	{ d: 16, cap: [[0, '電壓源要變成電流源，看內阻 r 怎麼搬家。'], [.3, 'r 的數值不變，從串聯搬到並聯。'], [.55, '電流源 I = E ÷ r = 12 ÷ 2 = 6 A，箭頭指向原本電壓源的正極。']], build(k) {
+		k.fade(grp(s('rect', { x: 40, y: 80, width: 210, height: 220, rx: 12, class: 'srcbox' }), VT(145, 70, '實際電壓源', 'sm', 'middle')), 0, .08);
+		k.fade(grp(W('M90 182 V110 H230'), W('M230 270 H90 V198'), term(236, 110), term(236, 270), bat(90, 190), VT(114, 196, 'E = 12 V', 'f16')), 0, .08);
+		k.fade(VT(160, 96, 'r = 2 Ω', 'f16', 'middle'), 0, .05, .28, .33);
+		k.fade(grp(VT(320, 204, '⇄', 'big', 'middle'), VT(320, 232, '互換', 'sm', 'middle')), .15, .25);
+		k.fade(grp(s('rect', { x: 390, y: 80, width: 220, height: 220, rx: 12, class: 'srcbox' }), VT(500, 70, '實際電流源', 'sm', 'middle'), term(596, 110), term(596, 270)), .2, .28);
+		k.trace(W('M450 110 V270 M450 110 H590 M450 270 H590'), .2, .32);
+		k.trace(W('M530 110 V270'), .45, .52);
+		k.fade(csrcG(450, 190), .55, .65);
+		k.fade(VT(476, 196, '6 A', 'f16 hot'), .6, .7);
+		const r = k.put(grp(s('rect', { x: -22, y: -9, width: 44, height: 18, rx: 3, class: 'res' })));
+		k.fn(p => { const q = ease(seg01(p, .3, .5)); r.setAttribute('transform', `translate(${160 + 370 * q} ${110 + 80 * q}) rotate(${90 * q})`); });
+		k.fade(VT(548, 196, 'r = 2 Ω', 'f16'), .5, .58);
+		k.type(VT(320, 336, '', '', 'middle'), 'I = E ÷ r = 12 ÷ 2 = 6 A', .62, .82);
+	} },
+	{ d: 14, cap: [[0, '兩種電源都接上同一個 4 Ω 負載。'], [.35, '電壓源這邊：I = 12 ÷ (2 + 4) = 2 A。'], [.55, '電流源這邊：6 × 2 ÷ (2 + 4) = 2 A。結果一樣，這就叫等效。']], build(k) {
+		const L = 'M60 182 V110 H230 V270 H60 V198';
+		k.trace(W(L), 0, .12);
+		k.fade(grp(bat(60, 190), VT(84, 196, '12 V', 'f16'), rb(130, 110), VT(130, 96, '2 Ω', 'f16', 'middle'), rb(230, 190, true), VT(246, 196, '4 Ω', 'f16')), .05, .15);
+		k.trace(W('M380 110 V270 M380 110 H570 V270 H380 M470 110 V270'), .1, .22);
+		k.fade(grp(csrcG(380, 190), VT(354, 196, '6 A', 'f16', 'end'), rb(470, 190, true), VT(486, 196, '2 Ω', 'f16'), rb(570, 190, true), VT(586, 196, '4 Ω', 'f16')), .15, .25);
+		k.flow(L, 2, .28);
+		[['M380 270 V110', 6], ['M380 110 H470', 6], ['M470 110 H570', 2], ['M470 110 V270', 4], ['M570 110 V270', 2], ['M570 270 H470', 2], ['M470 270 H380', 6]].forEach(([d, I]) => k.flow(d, I, .28));
+		k.fade(VT(145, 322, '負載電流 2 A', 'good', 'middle'), .4, .5);
+		k.fade(VT(475, 322, '負載電流 2 A', 'good', 'middle'), .58, .68);
+		k.fade(VT(310, 324, '＝', 'big', 'middle'), .72, .8);
+		k.fade(VT(310, 352, '等效', 'good f16', 'middle'), .75, .85);
+	} },
+	cardsScene('電源整理', ['理想電壓源：內阻 r = 0', '理想電流源：內阻 r = ∞', '端電壓 V = E − I·r', '互換：I = E ÷ r，r 串聯 ⇄ 並聯'], [[0, '記住：r 的數值不變，串聯和並聯互換。去實驗台讓兩邊結果一樣吧！']], 9)
+];
+
+/* ---------- 第 3 關：KVL ---------- */
+const L3P = 'M110 280 V193 M110 177 V90 H330 V177 M330 193 V280 H110';
+const L3F = 'M110 90 H330 V177 M330 193 V280 H110 V193 M110 177 V90';
+function l3Loop(k, anim, e2) {
+	k.trace(W(L3P), 0, anim ? .35 : .01);
+	k.fade(grp(bat(110, 185), bat(330, 185), rb(220, 90), rb(220, 280)), anim ? .3 : 0, anim ? .4 : .01);
+	k.fade(grp(VT(96, 216, 'E1 = 20 V', 'f16', 'end'), VT(346, 216, `E2 = ${e2} V`, 'f16'), VT(220, 72, 'R1 = 2 Ω', 'f16', 'middle'), VT(220, 312, 'R2 = 4 Ω', 'f16', 'middle'), VT(96, 300, 'A（0 V）', 'f16', 'end'), VT(96, 86, 'B', 'f16', 'end'), VT(344, 86, 'C', 'f16'), VT(344, 300, 'D', 'f16')), anim ? .4 : 0, anim ? .5 : .01);
+}
+const yv3 = v => 290 - v * 8, XS3 = [452, 476, 548, 572, 620];
+function l3Chart(k) {
+	const g = grp(VT(446, 74, '電位圖（V）', 'sm'));
+	for (const v of [0, 8, 16, 24]) g.append(s('line', { x1: 446, x2: 628, y1: yv3(v), y2: yv3(v), class: v ? 'gridl' : 'zero' }), VT(440, yv3(v) + 5, String(v), 'sm', 'end'));
+	['A', 'B', 'C', 'D', 'A'].forEach((n, i) => g.append(VT(XS3[i], 316, n, 'f16', 'middle')));
+	k.fade(g, 0, .04);
+}
+const LES3 = [
+	titleScene(3, 'KVL 電壓定律', '繞一圈，電壓加起來剛好是 0', [[0, 'KVL 就像爬山：繞一圈回到起點，爬上去多少就要走下來多少。']]),
+	{ d: 14, cap: [[0, '這個迴路有兩個電源，方向相反。'], [.5, '先假設電流順時針：I = (E1 − E2) ÷ (R1 + R2) = (20 − 8) ÷ 6 = 2 A。']], build(k) {
+		l3Loop(k, true, 8); k.flow(L3F, 2, .55);
+		k.type(VT(220, 170, '', 'f16', 'middle'), 'I = (20 − 8) ÷ 6', .55, .7);
+		k.fade(VT(220, 200, '= 2 A，順時針', 'good f16', 'middle'), .72, .8);
+	} },
+	{ d: 22, cap: [[0, '從 A（0 V）出發，經過 E1 從 − 到 +：電位升 20 V。'], [.27, '經過 R1，順著電流走：電位降 I × R1 = 2 × 2 = 4 V。'], [.5, '經過 E2 從 + 到 −：電位降 8 V。'], [.73, '經過 R2：再降 2 × 4 = 8 V，剛好回到 0 V！']], build(k) {
+		l3Loop(k, false, 8); l3Chart(k); k.flow(L3F, 2, 0);
+		const V = [0, 20, 16, 8, 0], P = V.map((v, i) => [XS3[i], yv3(v)]), LP = [[110, 280], [110, 90], [330, 90], [330, 280], [110, 280]], TM = ['+20', '−4', '−8', '−8'];
+		const line = k.put(s('polyline', { class: 'vline', points: '' }));
+		const cL = k.put(s('circle', { r: 10, class: 'cart', cx: 110, cy: 280 })), cC = k.put(s('circle', { r: 8, class: 'cart', cx: P[0][0], cy: P[0][1] }));
+		const now = k.put(VT(220, 190, '', 'hot', 'middle')), sum = k.put(VT(446, 346, '', 'f16'));
+		k.fn(p => {
+			const u = seg01(p, .04, .96), i = Math.min(3, Math.floor(u * 4)), fr = u >= 1 ? 1 : u * 4 - i;
+			const L = (a, b) => [a[0] + (b[0] - a[0]) * fr, a[1] + (b[1] - a[1]) * fr];
+			const [lx, ly] = L(LP[i], LP[i + 1]), [px, py] = L(P[i], P[i + 1]);
+			cL.setAttribute('cx', lx); cL.setAttribute('cy', ly); cC.setAttribute('cx', px); cC.setAttribute('cy', py);
+			line.setAttribute('points', [...P.slice(0, i + 1), [px, py]].map(q => q.join(',')).join(' '));
+			now.textContent = `電位 ${fmt(V[i] + (V[i + 1] - V[i]) * fr)} V`;
+			const done = u >= 1 ? 4 : i;
+			sum.textContent = done ? TM.slice(0, done).join(' ') + (done === 4 ? ' = 0' : '') : '';
+		});
+	} },
+	cardsScene('升還是降？', ['電源從 − 走到 +：電位升 E', '電源從 + 走到 −：電位降 E', '順著電流經過電阻：電位降 I·R', '逆著電流經過電阻：電位升 I·R'], [[0, '判斷升或降：電源看極性，電阻看你是不是順著電流走。']], 12),
+	{ d: 12, cap: [[0, '如果把 E2 換成 26 V，比 E1 還大。'], [.25, '照樣假設順時針：I = (20 − 26) ÷ 6 = −1 A。'], [.55, '負號不是算錯！大小 1 A 是對的，只是電流實際上是逆時針。']], build(k) {
+		l3Loop(k, false, 26);
+		k.type(VT(220, 170, '', 'f16', 'middle'), 'I = (20 − 26) ÷ 6', .25, .42);
+		k.fade(VT(220, 200, '= −1 A', 'hot', 'middle'), .45, .52);
+		k.flow(L3F, -1, .58);
+		k.fade(VT(220, 232, '實際逆時針 1 A', 'good f16', 'middle'), .6, .7);
+		k.fade(grp(VT(450, 150, '算出負值：'), VT(450, 185, '方向猜反了', 'hot'), VT(450, 220, '大小不用改', 'good')), .62, .75);
+	} },
+	{ d: 10, cap: [[0, 'Va = 12 V、Vb = −3 V，兩點差多少？'], [.45, '電位差 Vab = Va − Vb，前面減後面：12 − (−3) = 15 V。']], build(k) {
+		const y = v => 230 - v * 11;
+		k.trace(W('M320 70 V300'), 0, .15, true);
+		k.fade(grp(s('line', { x1: 312, x2: 328, y1: y(0), y2: y(0), class: 'wire' }), VT(304, y(0) + 6, '0 V', 'sm', 'end')), .1, .15);
+		k.fade(grp(dot(320, y(12), 7), VT(336, y(12) + 6, 'a：Va = 12 V')), .15, .25);
+		k.fade(grp(dot(320, y(-3), 7), VT(336, y(-3) + 6, 'b：Vb = −3 V')), .25, .35);
+		k.trace(W(`M488 ${y(12)} H500 V${y(-3)} H488`), .45, .6, true);
+		k.fade(VT(512, 186, 'Vab = 15 V', 'hot'), .6, .68);
+		k.type(VT(320, 340, '', '', 'middle'), 'Vab = Va − Vb = 12 − (−3) = 15 V', .65, .88);
+	} },
+	cardsScene('KVL 整理', ['繞迴路一圈：ΣE = ΣIR', '電壓升降的代數和 = 0', 'I 算出負的 → 方向相反，大小不變', 'Vab = Va − Vb（前面減後面）'], [[0, '去實驗台坐電位車，自己繞一圈看看！']], 8)
+];
+
+/* ---------- 第 4 關：KCL ---------- */
+function head4(x, y, inn, size) {
+	const dx = 320 - x, dy = 180 - y, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, d = inn ? 1 : -1, sz = size || 11;
+	const mx = x + dx * .45, my = y + dy * .45, tx = mx + ux * d * sz, ty = my + uy * d * sz, bx = mx - ux * d * sz * .6, by = my - uy * d * sz * .6;
+	return `M${tx} ${ty} L${bx - uy * sz * .8} ${by + ux * sz * .8} L${bx + uy * sz * .8} ${by - ux * sz * .8} Z`;
+}
+const AH = (x, y, inn, fill) => s('path', { d: head4(x, y, inn), fill: fill || 'var(--ink)' });
+function l4Base(k, withBottom) {
+	const ends = [[120, 180], [320, 50], [520, 180]];
+	if (withBottom) ends.push([320, 310]);
+	ends.forEach(([x, y]) => k.trace(W(`M${x} ${y} L320 180`), 0, .01));
+	k.fade(grp(dot(320, 180, 10), AH(120, 180, true), VT(130, 166, '3 A 流入', 'f16'), AH(320, 50, true), VT(334, 86, '5 A 流入', 'f16'), AH(520, 180, false), VT(510, 166, '2 A 流出', 'f16', 'end'), AH(320, 310, false)), 0, .01);
+	k.flow('M120 180 L320 180', 3, 0); k.flow('M320 50 L320 180', 5, 0); k.flow('M520 180 L320 180', -2, 0);
+}
+const LES4 = [
+	titleScene(4, 'KCL 電流定律', '流進多少，就流出多少', [[0, '節點像水管的分岔口，水不會憑空消失，電荷也不會。']], 7),
+	{ d: 14, cap: [[0, '節點就是好幾條導線接在一起的點。'], [.35, '流進節點的有 3 A 和 5 A，一共 8 A。'], [.65, '流出去的有 2 A，還有一個不知道的 I。']], build(k) {
+		[[120, 180], [320, 50], [520, 180], [320, 310]].forEach(([x, y], i) => k.trace(W(`M${x} ${y} L320 180`), i * .06, .12 + i * .06));
+		k.fade(dot(320, 180, 10), .25, .3);
+		k.fade(grp(AH(120, 180, true), VT(130, 166, '3 A 流入', 'f16')), .3, .38);
+		k.fade(grp(AH(320, 50, true), VT(334, 86, '5 A 流入', 'f16')), .38, .46);
+		k.fade(grp(AH(520, 180, false), VT(510, 166, '2 A 流出', 'f16', 'end')), .62, .7);
+		k.fade(grp(AH(320, 310, false), VT(334, 296, 'I = ?', 'hot')), .7, .78);
+		k.flow('M120 180 L320 180', 3, .32); k.flow('M320 50 L320 180', 5, .4); k.flow('M520 180 L320 180', -2, .66);
+		k.fade(VT(40, 336, '流進：3 + 5 = 8 A', 'f16'), .45, .55);
+		k.fade(VT(600, 336, '流出：2 + I', 'f16', 'end'), .75, .85);
+	} },
+	{ d: 12, cap: [[0, 'KCL：流進的總和 = 流出的總和。'], [.3, '3 + 5 = 2 + I，所以 I = 6 A。'], [.55, '流進 8 A、流出也是 8 A，節點平衡。']], build(k) {
+		l4Base(k, true);
+		const bl = k.put(VT(334, 296, 'I = ?', 'hot'));
+		k.flow('M320 310 L320 180', -6, .42);
+		k.type(VT(40, 60, ''), '3 + 5 = 2 + I', .05, .25);
+		k.fade(VT(40, 96, 'I = 6 A', 'good'), .3, .38);
+		const bi = s('rect', { x: 540, width: 28, y: 330, height: 0, class: 'bar-in' }), bo = s('rect', { x: 578, width: 28, y: 330, height: 0, class: 'bar-out' });
+		k.put(grp(s('line', { x1: 532, x2: 614, y1: 330, y2: 330, class: 'wire' }), bi, bo, VT(554, 350, '入', 'sm', 'middle'), VT(592, 350, '出', 'sm', 'middle')));
+		k.fade(grp(VT(554, 250, '8', 'f16', 'middle'), VT(592, 250, '8', 'f16', 'middle')), .7, .76);
+		k.fn(p => {
+			const on = p >= .4; bl.textContent = on ? 'I = 6 A 流出' : 'I = ?'; bl.setAttribute('class', 'vt ' + (on ? 'good' : 'hot'));
+			const hh = 72 * ease(seg01(p, .55, .7)); bi.setAttribute('y', 330 - hh); bi.setAttribute('height', hh); bo.setAttribute('y', 330 - hh); bo.setAttribute('height', hh);
+		});
+	} },
+	{ d: 14, cap: [[0, '換一題：流進 2 A，流出 5 A，I 先假設是流出。'], [.3, '2 = 5 + I，算出 I = −3 A。'], [.55, '負號代表方向猜反了：I 其實是流進 3 A。']], build(k) {
+		[[120, 180], [520, 180], [320, 310]].forEach(([x, y]) => k.trace(W(`M${x} ${y} L320 180`), 0, .01));
+		k.fade(grp(dot(320, 180, 10), AH(120, 180, true), VT(130, 166, '2 A 流入', 'f16'), AH(520, 180, false), VT(510, 166, '5 A 流出', 'f16', 'end')), 0, .01);
+		const ah = k.put(AH(320, 310, false, 'var(--b2)')), lab = k.put(VT(334, 296, 'I（假設流出）', 'f16'));
+		k.flow('M120 180 L320 180', 2, 0); k.flow('M520 180 L320 180', -5, 0); k.flow('M320 310 L320 180', 3, .58);
+		k.type(VT(40, 60, ''), '2 = 5 + I', .2, .32);
+		k.fade(VT(40, 96, 'I = −3 A', 'hot'), .35, .42);
+		k.fn(p => { const f = p >= .55; ah.setAttribute('d', head4(320, 310, f)); ah.setAttribute('fill', f ? 'var(--good)' : 'var(--b2)'); lab.textContent = f ? '實際流進 3 A' : 'I（假設流出）'; lab.setAttribute('class', 'vt f16' + (f ? ' good' : '')); });
+	} },
+	{ d: 14, cap: [[0, '怎麼數節點？看哪些點被導線直接連在一起。'], [.3, '上面這整條導線連在一起，不管有幾個接點，都只算一個節點。'], [.62, '下面那整條也是同一個節點。這個電路只有 2 個節點。']], build(k) {
+		k.trace(s('path', { d: 'M110 100 H480', class: 'nodehl', stroke: 'var(--b6)' }), .25, .5);
+		k.trace(s('path', { d: 'M110 280 H480', class: 'nodehl', stroke: 'var(--b5)' }), .58, .8);
+		k.trace(W('M110 182 V100 H480 V280 H110 V198 M300 100 V280'), 0, .2);
+		k.fade(grp(bat(110, 190), rb(300, 190, true), rb(480, 190, true)), .1, .2);
+		k.fade(grp(dot(300, 100), dot(480, 100), dot(300, 280), dot(480, 280)), .15, .22);
+		k.fade(VT(295, 80, '節點 1（整條上面的線）', 'blue f16', 'middle'), .45, .55);
+		k.fade(VT(295, 314, '節點 2（整條下面的線）', 'good f16', 'middle'), .78, .88);
+	} },
+	{ d: 9, cap: [[0, '第 1 關的並聯分流，其實就是 KCL。'], [.4, '6 A 流進節點，分成 3 A、2 A、1 A 流出：6 = 3 + 2 + 1。']], build(k) {
+		l1Par(k, false, 0);
+		[[250, '3 A'], [370, '2 A'], [490, '1 A']].forEach(([x, v]) => k.fade(VT(x + 16, 150, v, 'hot'), .1, .2));
+		k.fade(VT(170, 90, '6 A', 'hot', 'middle'), .1, .2);
+		k.type(VT(320, 330, '', 'good', 'middle'), '6 = 3 + 2 + 1　流進 = 流出', .4, .65);
+	} },
+	cardsScene('KCL 整理', ['流進的總和 = 流出的總和', 'KCL 是電荷守恆，KVL 是能量守恆', '導線直接相連的點 = 同一個節點', '算出負值 → 實際方向相反'], [[0, '去實驗台當交通警察，讓節點不塞車！']], 7)
+];
+
+/* ---------- 第 5 關：惠斯登電橋 ---------- */
+function l5Bridge(k, anim, v, mid) {
+	const g = s('g'), R = {};
+	R.r1 = resBox(g, 220, 50, 110, 180); R.r2 = resBox(g, 220, 50, 330, 180); R.r3 = resBox(g, 110, 180, 220, 310); R.r4 = resBox(g, 330, 180, 220, 310);
+	g.append(s('line', { x1: 220, y1: 50, x2: 220, y2: 34, class: 'wire' }), term(220, 30), s('line', { x1: 220, y1: 310, x2: 220, y2: 326, class: 'wire' }), term(220, 330),
+		dot(220, 50), dot(110, 180), dot(330, 180), dot(220, 310), VT(234, 34, 'A：12 V', 'sm'), VT(234, 336, 'B：0 V', 'sm'), VT(96, 185, 'C', 'f16', 'end'), VT(344, 185, 'D', 'f16'));
+	const lab = [VT(150, 110, `R1 = ${v[0]} Ω`, 'f16', 'end'), VT(290, 110, `R2 = ${v[1]} Ω`, 'f16'), VT(150, 262, `R3 = ${v[2]} Ω`, 'f16', 'end'), VT(290, 262, typeof v[3] === 'string' ? v[3] : `R4 = ${v[3]} Ω`, 'f16' + (typeof v[3] === 'string' ? ' hot' : ''))];
+	g.append(...lab);
+	k.fade(g, 0, anim ? .3 : .01);
+	const m = s('g');
+	if (mid === 'G' || mid === 'M') m.append(s('line', { x1: 110, y1: 180, x2: 202, y2: 180, class: 'wire' }), s('line', { x1: 238, y1: 180, x2: 330, y2: 180, class: 'wire' }), s('circle', { cx: 220, cy: 180, r: 18, class: 'csrc' }), mid === 'G' ? VT(220, 186, 'G', 'f16', 'middle') : VT(242, 168, 'G', 'f16'));
+	else { resBox(m, 110, 180, 330, 180); m.append(VT(220, 206, '5 Ω', 'f16', 'middle')); }
+	return { R, lab, m };
+}
+const LES5 = [
+	titleScene(5, '惠斯登電橋', '對邊相乘相等就平衡', [[0, '四個電阻排成菱形，中間接一個檢流計 G，這就是惠斯登電橋。']], 7),
+	{ d: 14, cap: [[0, 'A 接 12 V、B 接 0 V，左右兩邊各有兩個電阻。'], [.5, '左邊 R1、R3 分壓得到 C 點電位，右邊 R2、R4 分壓得到 D 點電位。']], build(k) {
+		const { m } = l5Bridge(k, true, [2, 4, 3, 6], 'G'); k.fade(m, .25, .35);
+		k.fade(VT(390, 140, '左邊：R1、R3 → C 點電位', 'f16'), .5, .6);
+		k.fade(VT(390, 176, '右邊：R2、R4 → D 點電位', 'f16'), .6, .7);
+	} },
+	{ d: 16, cap: [[0, 'C 點電位 = 12 × 3 ÷ (2 + 3) = 7.2 V。'], [.3, 'D 點電位 = 12 × 6 ÷ (4 + 6) = 7.2 V。'], [.6, 'C、D 一樣高，G 兩端沒有電壓差，所以沒有電流。']], build(k) {
+		const { m } = l5Bridge(k, false, [2, 4, 3, 6], 'G'); k.fade(m, 0, .01);
+		k.type(VT(390, 110, '', 'f16'), 'VC = 12×3÷(2+3) = 7.2 V', .05, .25);
+		k.type(VT(390, 146, '', 'f16'), 'VD = 12×6÷(4+6) = 7.2 V', .3, .5);
+		k.fade(VT(96, 206, '7.2 V', 'hot f16', 'end'), .25, .3);
+		k.fade(VT(344, 206, '7.2 V', 'hot f16'), .5, .55);
+		k.fade(VT(390, 196, 'VC = VD → G 沒有電流', 'good'), .6, .7);
+	} },
+	{ d: 14, cap: [[0, '不用算電位也能判斷：看對邊的乘積。'], [.15, 'R1 × R4 = 2 × 6 = 12。'], [.35, 'R2 × R3 = 4 × 3 = 12。'], [.6, '兩個相等，電橋平衡！']], build(k) {
+		const { R, m } = l5Bridge(k, false, [2, 4, 3, 6], 'G'); k.fade(m, 0, .01);
+		k.fn(p => { const on = p >= .12; R.r1.setAttribute('class', on ? 'res hl' : 'res'); R.r4.setAttribute('class', on ? 'res hl' : 'res'); R.r2.setAttribute('class', p >= .32 ? 'res hl2' : 'res'); R.r3.setAttribute('class', p >= .32 ? 'res hl2' : 'res'); });
+		k.fade(VT(390, 110, 'R1 × R4 = 2 × 6 = 12', 'blue'), .15, .28);
+		k.fade(VT(390, 146, 'R2 × R3 = 4 × 3 = 12', 'hot'), .35, .48);
+		k.fade(VT(390, 196, '對邊乘積相等 → 平衡！', 'good'), .6, .7);
+	} },
+	{ d: 14, cap: [[0, '如果中間接的是一個 5 Ω 電阻呢？'], [.15, '電橋平衡，中間沒有電流，這個 5 Ω 等於沒用，可以直接拿掉。'], [.45, '剩下左右兩條：(2 + 3) 並 (4 + 6) = 5 × 10 ÷ 15 ≈ 3.33 Ω。']], build(k) {
+		const { m } = l5Bridge(k, false, [2, 4, 3, 6], 'R'); k.fade(m, 0, .01, .25, .4);
+		k.fade(VT(390, 110, '平衡 → 中間沒有電流', 'f16'), .1, .2);
+		k.fade(VT(390, 146, '可以直接拿掉', 'hot f16'), .2, .3);
+		k.type(VT(390, 200, '', 'f16'), '(2 + 3) 並 (4 + 6)', .45, .6);
+		k.type(VT(390, 236, '', 'good'), '= 5 × 10 ÷ 15 ≈ 3.33 Ω', .62, .8);
+	} },
+	{ d: 12, cap: [[0, '用電橋量未知電阻：把 Rx 放在 R4 的位置。'], [.1, '調整其他電阻，直到 G 的指針歸零。'], [.5, '平衡時 R1 × Rx = R2 × R3，Rx = 20 × 5 ÷ 10 = 10 Ω。']], build(k) {
+		const { lab, m } = l5Bridge(k, false, [10, 20, 5, 'Rx = ?'], 'M'); k.fade(m, 0, .01);
+		const nd = k.put(s('line', { x1: 220, y1: 180, x2: 220, y2: 166, class: 'needle', style: 'transition:none' }));
+		k.fn(p => {
+			const th = 50 * (1 - ease(seg01(p, .08, .45))) * Math.PI / 180; nd.setAttribute('x2', 220 + 14 * Math.sin(th)); nd.setAttribute('y2', 180 - 14 * Math.cos(th));
+			const ok = p >= .62; lab[3].textContent = ok ? 'Rx = 10 Ω' : 'Rx = ?'; lab[3].setAttribute('class', 'vt f16 ' + (ok ? 'good' : 'hot'));
+		});
+		k.fade(VT(390, 110, '調整到 G 歸零', 'f16'), .05, .15);
+		k.fade(VT(390, 160, '平衡：R1 × Rx = R2 × R3', 'f16'), .5, .6);
+		k.type(VT(390, 196, '', 'good'), 'Rx = 20 × 5 ÷ 10 = 10 Ω', .6, .8);
+	} },
+	cardsScene('電橋整理', ['平衡：R1 × R4 = R2 × R3（對邊相乘）', '平衡時 G 沒電流，中間可以拿掉', '量電阻：Rx = R2 × R3 ÷ R1', '不平衡 → 用 Y–Δ 互換'], [[0, '去實驗台轉 R4，把鎖打開！']], 8)
+];
+
+/* ---------- 第 6 關：Y–Δ ---------- */
+function l6Shapes(k, anim) {
+	const gD = s('g'), gY = s('g');
+	const R = { ab: resBox(gD, 160, 60, 60, 250), bc: resBox(gD, 60, 250, 260, 250), ca: resBox(gD, 260, 250, 160, 60), a: resBox(gY, 480, 165, 480, 60), b: resBox(gY, 480, 165, 385, 250), c: resBox(gY, 480, 165, 575, 250) };
+	gD.append(dot(160, 60), dot(60, 250), dot(260, 250), VT(160, 46, 'a', 'f16', 'middle'), VT(46, 262, 'b', 'f16', 'end'), VT(274, 262, 'c', 'f16'), VT(92, 148, 'Rab', 'f16', 'end'), VT(228, 148, 'Rca', 'f16'), VT(160, 284, 'Rbc', 'f16', 'middle'));
+	gY.append(dot(480, 60), dot(385, 250), dot(575, 250), dot(480, 165), VT(480, 46, 'a', 'f16', 'middle'), VT(371, 262, 'b', 'f16', 'end'), VT(589, 262, 'c', 'f16'), VT(496, 112, 'Ra', 'f16'), VT(410, 196, 'Rb', 'f16', 'end'), VT(550, 196, 'Rc', 'f16'));
+	const V = { ab: VT(92, 168, '', 'f16 hot', 'end'), ca: VT(228, 168, '', 'f16 hot'), bc: VT(160, 304, '', 'f16 hot', 'middle'), a: VT(496, 132, '', 'f16 hot'), b: VT(410, 216, '', 'f16 hot', 'end'), c: VT(550, 216, '', 'f16 hot') };
+	gD.append(V.ab, V.ca, V.bc); gY.append(V.a, V.b, V.c);
+	k.fade(gD, 0, anim ? .3 : .01); k.fade(gY, anim ? .35 : 0, anim ? .65 : .01);
+	return { R, V };
+}
+const LES6 = [
+	titleScene(6, 'Y–Δ 互換', '找到「對面」那一個', [[0, '有些電路用串並聯怎麼拆都拆不開，這時候就要用 Y–Δ 互換。']], 7),
+	{ d: 12, cap: [[0, 'Δ 接像三角形，三個電阻各接在兩個點之間。'], [.4, 'Y 接像 Y 字，三個電阻各有一端接在中心。'], [.7, '兩種接法的 a、b、c 三個端點對得起來，就能互相換。']], build(k) {
+		l6Shapes(k, true);
+	} },
+	{ d: 18, cap: [[0, 'Δ→Y：鄰邊相乘，除以三邊和。'], [.1, 'Ra 碰到的是 Rab 和 Rca（紅色）：10 × 20 ÷ 50 = 4 Ω。'], [.5, 'Rb 碰到 Rab 和 Rbc：10 × 20 ÷ 50 = 4 Ω。'], [.7, 'Rc 碰到 Rbc 和 Rca：20 × 20 ÷ 50 = 8 Ω。']], build(k) {
+		const { R, V } = l6Shapes(k, false);
+		V.ab.textContent = '10 Ω'; V.bc.textContent = '20 Ω'; V.ca.textContent = '20 Ω';
+		k.type(VT(320, 328, '', '', 'middle'), 'Ra = 10 × 20 ÷ (10 + 20 + 20) = 4 Ω', .1, .32);
+		k.type(VT(320, 354, '', 'f16', 'middle'), 'Rb = 10 × 20 ÷ 50 = 4 Ω，Rc = 20 × 20 ÷ 50 = 8 Ω', .58, .82);
+		k.fn(p => {
+			for (const r of Object.values(R)) r.setAttribute('class', 'res');
+			const hl = (t, a, b) => { R[t].setAttribute('class', 'res hl'); R[a].setAttribute('class', 'res hl2'); R[b].setAttribute('class', 'res hl2'); };
+			if (p >= .05 && p < .5) hl('a', 'ab', 'ca'); else if (p >= .5 && p < .7) hl('b', 'ab', 'bc'); else if (p >= .7) hl('c', 'bc', 'ca');
+			V.a.textContent = p >= .33 ? '4 Ω' : ''; V.b.textContent = p >= .7 ? '4 Ω' : ''; V.c.textContent = p >= .84 ? '8 Ω' : '';
+		});
+	} },
+	{ d: 18, cap: [[0, 'Y→Δ：先把三個 Y 電阻兩兩相乘，再加起來。'], [.3, '2×2 + 2×1 + 1×2 = 8。'], [.4, '要算 Rab，它連著 a、b 兩點；沒碰到 a、b 的「對面」是 Rc。'], [.6, 'Rab = 8 ÷ Rc = 8 ÷ 1 = 8 Ω。']], build(k) {
+		const { R, V } = l6Shapes(k, false);
+		V.a.textContent = '2 Ω'; V.b.textContent = '2 Ω'; V.c.textContent = '1 Ω';
+		k.type(VT(320, 328, '', '', 'middle'), '兩兩相乘相加：2×2 + 2×1 + 1×2 = 8', .05, .3);
+		k.type(VT(320, 354, '', 'good', 'middle'), 'Rab = 8 ÷ Rc = 8 ÷ 1 = 8 Ω', .55, .75);
+		k.fade(VT(574, 196, '（對面）', 'hot f16'), .42, .5);
+		k.fn(p => { for (const r of Object.values(R)) r.setAttribute('class', 'res'); if (p >= .35) { R.ab.setAttribute('class', 'res hl'); R.c.setAttribute('class', 'res hl2'); } V.ab.textContent = p >= .76 ? '8 Ω' : ''; });
+	} },
+	{ d: 12, cap: [[0, '三個電阻一樣大的時候最快。'], [.2, 'Δ 換成 Y：直接除以 3，9 ÷ 3 = 3 Ω。'], [.55, 'Y 換回 Δ：乘以 3，3 × 3 = 9 Ω。']], build(k) {
+		const { V } = l6Shapes(k, false);
+		V.ab.textContent = '9 Ω'; V.bc.textContent = '9 Ω'; V.ca.textContent = '9 Ω';
+		k.fade(VT(322, 140, '÷ 3 →', 'blue', 'middle'), .15, .25);
+		k.fade(VT(322, 196, '← × 3', 'hot', 'middle'), .55, .65);
+		k.type(VT(320, 328, '', '', 'middle'), 'Δ→Y：9 ÷ 3 = 3 Ω', .25, .4);
+		k.type(VT(320, 354, '', '', 'middle'), 'Y→Δ：3 × 3 = 9 Ω', .62, .78);
+		k.fn(p => { const t = p >= .4 ? '3 Ω' : ''; V.a.textContent = t; V.b.textContent = t; V.c.textContent = t; });
+	} },
+	{ d: 12, cap: [[0, 'Y–Δ 什麼時候用？像這個不平衡的電橋，用串並聯拆不開。'], [.2, '上面三個電阻（R1、R2 和中間那個）剛好排成一個 Δ。'], [.5, '把這個 Δ 換成 Y，整個電路就變成串並聯，可以算了。']], build(k) {
+		const A = [170, 60], C = [70, 170], D = [270, 170], B = [170, 280], Yc = [170, 128];
+		const gD = s('g'); resBox(gD, ...A, ...C); resBox(gD, ...A, ...D); resBox(gD, ...C, ...D);
+		const gR = s('g'); resBox(gR, ...C, ...B); resBox(gR, ...D, ...B); gR.append(dot(...A), dot(...B), dot(...C), dot(...D), VT(184, 56, 'A', 'f16'), VT(184, 296, 'B', 'f16'), VT(56, 175, 'C', 'f16', 'end'), VT(284, 175, 'D', 'f16'));
+		const gY = s('g'); resBox(gY, ...Yc, ...A); resBox(gY, ...Yc, ...C); resBox(gY, ...Yc, ...D); gY.append(dot(...Yc));
+		k.fade(s('polygon', { points: '170,60 70,170 270,170', class: 'tint' }), .2, .3, .5, .58);
+		k.fade(gR, 0, .08); k.fade(gD, 0, .08, .5, .58);
+		k.fade(VT(170, 152, 'Δ', 'big blue', 'middle'), .22, .3, .5, .55);
+		k.fade(gY, .55, .65);
+		k.fade(VT(156, 112, 'Y', 'big hot', 'end'), .62, .7);
+		k.fade(VT(330, 110, '不平衡的電橋：串並聯拆不開'), .02, .12);
+		k.fade(VT(330, 150, '上面三個電阻排成 Δ', 'blue'), .22, .32);
+		k.fade(VT(330, 190, '把它換成 Y', 'hot'), .55, .65);
+		k.fade(VT(330, 230, '就能用串並聯算總電阻了', 'good'), .75, .85);
+	} },
+	cardsScene('Y–Δ 整理', ['Δ→Y：鄰邊相乘 ÷ 三邊和', 'Y→Δ：兩兩相乘相加 ÷ 對面', '三個相等：Δ→Y ÷ 3，Y→Δ × 3', '電橋不平衡 → 先 Y–Δ，再串並聯'], [[0, '去變身工坊試試看，找到「對面」那一個！']], 7)
+];
+const LESSONS = [LES1, LES2, LES3, LES4, LES5, LES6];
+
+/* ---------- 動畫講解：播放器 ---------- */
+function lessonPlayer(root, L) {
+	const scenes = L.lesson, total = scenes.reduce((a, x) => a + x.d, 0);
+	const svg = s('svg', { viewBox: '0 0 640 360', class: 'vstage', role: 'img', 'aria-label': `第 ${L.n} 關 ${L.topic}動畫講解` });
+	const big = h('button', { class: 'vbig', type: 'button' }, s('svg', { viewBox: '0 0 24 24', width: 22, height: 22, 'aria-hidden': 'true' }, s('path', { d: 'M7 4 L20 12 L7 20 Z', fill: 'currentColor' })), `播放動畫講解（${mmss(total)}）`);
+	const cap = h('div', { class: 'vcap', 'aria-live': 'polite' });
+	const playB = h('button', { class: 'btn small', type: 'button' }, '播放');
+	const prevB = h('button', { class: 'btn small', type: 'button' }, '上一段');
+	const nextB = h('button', { class: 'btn small', type: 'button' }, '下一段');
+	const speedB = h('button', { class: 'btn small', type: 'button', 'aria-label': '播放速度' }, '1×');
+	const bar = h('div', { class: 'vbar' });
+	const fills = scenes.map((sc, i) => {
+		const f = h('i');
+		const b = h('button', { class: 'vseg', type: 'button', style: `flex-grow:${sc.d}`, 'aria-label': `跳到第 ${i + 1} 段` }, f);
+		b.addEventListener('click', () => { enter(i); setPlaying(true); });
+		bar.append(b); return f;
+	});
+	const time = h('span', { class: 'vtime' });
+	root.append(h('div', { class: 'player' }, h('div', { class: 'vwrap' }, svg, big), cap, h('div', { class: 'vctrl' }, playB, prevB, nextB, bar, time, speedB)));
+	let idx = 0, t = 0, playing = false, speed = 1, upd = () => {}, started = false;
+	function enter(i) {
+		idx = i; t = 0; svg.replaceChildren();
+		const g = s('g'); svg.append(g);
+		const kit = kitFor(g); scenes[i].build(kit.k); upd = kit.update;
+		paint();
+	}
+	function paint() {
+		const sc = scenes[idx], p = Math.min(1, t / sc.d);
+		upd(reduceMotion ? 1 : p, t);
+		let c = ''; for (const [at, txt] of sc.cap) if (p >= at) c = txt;
+		if (cap.textContent !== c) cap.textContent = c;
+		fills.forEach((f, i) => { f.style.width = i < idx ? '100%' : i > idx ? '0%' : (p * 100) + '%'; });
+		const before = scenes.slice(0, idx).reduce((a, x) => a + x.d, 0);
+		time.textContent = `${mmss(before + Math.min(t, sc.d))} / ${mmss(total)}`;
+	}
+	const ended = () => idx === scenes.length - 1 && t >= scenes[idx].d;
+	function setPlaying(v) {
+		playing = v;
+		if (v && !started) { started = true; big.hidden = true; }
+		playB.textContent = playing ? '暫停' : ended() ? '重播' : '播放';
+	}
+	big.addEventListener('click', () => { sfx.click(); enter(0); setPlaying(true); });
+	playB.addEventListener('click', () => { if (ended()) { enter(0); setPlaying(true); } else setPlaying(!playing); });
+	prevB.addEventListener('click', () => { enter(t > 2 || idx === 0 ? idx : idx - 1); setPlaying(true); });
+	nextB.addEventListener('click', () => { if (idx < scenes.length - 1) { enter(idx + 1); setPlaying(true); } });
+	const SPEEDS = [1, 1.5, 0.75];
+	speedB.addEventListener('click', () => { speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; speedB.textContent = speed + '×'; });
+	anims.push(dt => {
+		if (!playing) return;
+		t += dt * speed;
+		if (t >= scenes[idx].d) {
+			if (idx < scenes.length - 1) { enter(idx + 1); return; }
+			t = scenes[idx].d; paint(); setPlaying(false); return;
+		}
+		paint();
+	});
+	enter(0);
+	upd(1, 0);
+	cap.textContent = scenes[0].cap[0][1];
+	return { total };
+}
+
 /* ---------- 關卡資料 ---------- */
 const LEVELS = [
 	{ n: 1, band: '棕', color: 'var(--b1)', text: '#fff', title: '燈泡派對', topic: '串聯與並聯', blurb: '串聯電流相同、並聯電壓相同。拉滑桿看哪顆燈泡最亮。', sim: sim1,
@@ -1118,6 +1618,7 @@ const LEVELS = [
 			['什麼是「對面」', 'R<sub>ab</sub> 連著 a、b，對面就是沒碰到 a、b 的 R<sub>c</sub>。', '', true]] }
 ];
 const BOSS = { n: 7, band: '紫', color: 'var(--b7)', text: '#fff', title: '總複習 Boss 戰', topic: '六關混合題', blurb: '10 題混合題、3 顆愛心，看你能拿到什麼評等。' };
+LEVELS.forEach((L, i) => { L.lesson = LESSONS[i]; });
 
 /* ---------- 畫面 ---------- */
 const view = document.getElementById('view');
@@ -1127,7 +1628,7 @@ function setLv(L) {
 	root.setProperty('--lv', L ? L.color : 'var(--ink)');
 	root.setProperty('--lv-text', L ? L.text : '#fff');
 }
-function clearView() { flows = []; rideFn = null; view.replaceChildren(); window.scrollTo(0, 0); }
+function clearView() { flows = []; rideFn = null; anims = []; view.replaceChildren(); window.scrollTo(0, 0); }
 function clearedRun() { let k = 0; while (k < 6 && (S.stars[k + 1] || 0) > 0) k++; return k; }
 function resistorBadge(L, w, hgt) {
 	return s('svg', { viewBox: '0 0 96 40', class: 'badge', width: w || 96, height: hgt || 40, 'aria-hidden': 'true' },
@@ -1209,13 +1710,17 @@ function showLevel(n) {
 		h('button', { class: 'btn small', type: 'button', onclick: () => go('map') }, '← 回地圖'),
 		resistorBadge(L),
 		h('div', null, h('p', { class: 'lmeta' }, `第 ${n} 關 · ${L.topic}`), h('h2', null, L.title))));
+	const vid = h('section', { class: 'block' });
+	view.append(vid);
+	vid.append(blockTitle('1', '動畫講解', `${mmss(L.lesson.reduce((a, x) => a + x.d, 0))}，可以暫停、跳段、調速度`));
+	lessonPlayer(vid, L);
 	const tips = h('div', { class: 'tips' });
 	L.tips.forEach(([t, p, f, trap]) => tips.append(h('div', { class: 'tip' + (trap ? ' trap' : '') }, h('h4', null, t), p ? h('p', { html: p }) : null, f ? h('span', { class: 'f', html: f }) : null)));
-	view.append(h('section', { class: 'block' }, blockTitle('1', '秘笈', '先花兩分鐘看完'), tips));
-	const lab = h('section', { class: 'block' }, blockTitle('2', '實驗台', '拉滑桿，電流的光點會跟著變快變慢'));
+	view.append(h('section', { class: 'block' }, blockTitle('2', '秘笈', '看完動畫再複習一次'), tips));
+	const lab = h('section', { class: 'block' }, blockTitle('3', '實驗台', '拉滑桿，電流的光點會跟著變快變慢'));
 	view.append(lab);
 	L.sim(lab);
-	const qs = h('section', { class: 'block' }, blockTitle('3', '挑戰', '5 題：答對 3 題 1 星、4 題 2 星、全對 3 星'));
+	const qs = h('section', { class: 'block' }, blockTitle('4', '挑戰', '5 題：答對 3 題 1 星、4 題 2 星、全對 3 星'));
 	view.append(qs);
 	quiz(qs, {
 		gens: BANK[n - 1], count: 5,
@@ -1278,7 +1783,7 @@ window.addEventListener('hashchange', () => { const n = location.hash.slice(1) |
 document.getElementById('brand').addEventListener('click', () => go('map'));
 document.getElementById('sound-btn').addEventListener('click', () => { S.sound = !S.sound; save(); renderStats(); sfx.click(); });
 
-window.__ch3 = { BANK, calc1, fmt };
+window.__ch3 = { BANK, calc1, fmt, LESSONS, kitFor };
 function start(data) { renderStats(); render((data && data.route) || location.hash.slice(1) || 'map'); }
 if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ route }));
 if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
